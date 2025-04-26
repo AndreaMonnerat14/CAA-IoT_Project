@@ -8,7 +8,12 @@ import pandas as pd
 
 # You only need to uncomment the line below if you want to run your flask app locally.
 #os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "assignment1-452312-d155b30eaf2d.json"
-client = bigquery.Client(project="assignment1-452312")
+# Initialize BigQuery client
+try:
+    client = bigquery.Client(project="assignment1-452312")
+except Exception as e:
+    print(f"Error initializing BigQuery client: {e}")
+    client = None
 
 #%%
 
