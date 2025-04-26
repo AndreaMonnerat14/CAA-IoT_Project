@@ -35,36 +35,39 @@ def send_to_bigquery():
         q = """
         SELECT * FROM `assignment1-452312.Lab4_IoT_datasets.weather_records` LIMIT 10
         """
-        query_job = client.query(q)
-        df = query_job.to_dataframe()
-        # For exercise 2: Call the openweatherapi and add the resulting 
-        # values to the `data` dictionary
-        # data["outdoor_temp"] = ...
-        # data["outdoor_humidity"] = ...
-        # data["weather"] = ...
-        # building the query
-        q = """INSERT INTO `assignment1-452312.Lab4_IoT_datasets.weather_records` 
-        """
-        names = """"""
-        values = """"""
+        try:
+            query_job = client.query(q)
+            df = query_job.to_dataframe()
+        except Exception as e:
+            return {"status": "failed", "message": f"BigQuery query failed: {e}"}
+
+        # building the insert query
+        q = """INSERT INTO `assignment1-452312.Lab4_IoT_datasets.weather_records` """
+        names = ""
+        values = ""
 
         for k, v in data.items():
-            names += f"""{k},"""
+            names += f"{k},"
             if df.dtypes[k] == float:
-                values += f"""{v},"""
+                values += f"{v},"
             else:
-                # string values in the query should be in single qutation!
-                values += f"""'{v}',"""
+                values += f"'{v}',"
+
         # remove the last comma
         names = names[:-1]
         values = values[:-1]
-        q = q + f""" ({names})""" + f""" VALUES({values})"""
-        query_job = client.query(q)
-        return {"status": "sucess", "data": data}
-    return {"status": "failed"}
-        
+        q = q + f" ({names}) VALUES({values})"
 
- #For exercise 3: Complete the following endpoint.
+        try:
+            query_job = client.query(q)
+        except Exception as e:
+            return {"status": "failed", "message": f"BigQuery insert failed: {e}"}
+
+        return {"status": "success", "data": data}
+    return {"status": "failed"}
+
+
+#For exercise 3: Complete the following endpoint.
 @app.route('/get_outdoor_weather', methods=['GET', 'POST'])
 def get_outdoor_weather():
      if request.method == 'POST':
