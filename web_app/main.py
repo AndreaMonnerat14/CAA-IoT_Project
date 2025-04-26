@@ -18,12 +18,6 @@ YOUR_HASH_PASSWD = "fce21e30cc9a328d8531fefc6f6dff8fb80fedced25b37fa6259ceec595e
 
 app = Flask(__name__)
 
-# get the column names of the db
-q = """
-SELECT * FROM `assignment1-452312.Lab4_IoT_datasets.weather_records` LIMIT 10
-"""
-query_job = client.query(q)
-df = query_job.to_dataframe()
 #%%
 @app.route('/send-to-bigquery', methods=['GET', 'POST'])
 def send_to_bigquery():
@@ -31,6 +25,13 @@ def send_to_bigquery():
         if request.get_json(force=True)["passwd"] != YOUR_HASH_PASSWD:
             raise Exception("Incorrect Password!")
         data = request.get_json(force=True)["values"]
+
+        # get the column names of the db
+        q = """
+        SELECT * FROM `assignment1-452312.Lab4_IoT_datasets.weather_records` LIMIT 10
+        """
+        query_job = client.query(q)
+        df = query_job.to_dataframe()
         # For exercise 2: Call the openweatherapi and add the resulting 
         # values to the `data` dictionary
         # data["outdoor_temp"] = ...
