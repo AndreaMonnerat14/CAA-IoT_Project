@@ -69,7 +69,7 @@ The script `main.py` in the lab's folder will create a simple Flask application 
 - You need to store the hash of your password in the flask server. You can use the code cell below to hash your password. Copy the result to the `main.py` file (`YOUR_HASH_PASSWD` variable).
 """
 
-h = hashlib.sha256(b"patate") # change this to a password of choice!
+h = hashlib.sha256(b"okmec") # change this to a password of choice!
 h.hexdigest() # this is the hashed password: YOUR_HASH_PASSWD
 
 """To test the endpoint locally on your computer, you can dowonload the `main.py` file and run it on your computer.

@@ -7,7 +7,7 @@ from datetime import datetime
 import pandas as pd
 
 # You only need to uncomment the line below if you want to run your flask app locally.
-#os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "assignment1-452312-d155b30eaf2d.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "assignment1-452312-d155b30eaf2d.json"
 # Initialize BigQuery client
 try:
     client = bigquery.Client(project="assignment1-452312")
@@ -18,7 +18,6 @@ except Exception as e:
 #%%
 
 # For authentication
-
 YOUR_HASH_PASSWD = "fce21e30cc9a328d8531fefc6f6dff8fb80fedced25b37fa6259ceec595e4057" # YOUR_HASH_PASSWD
 
 app = Flask(__name__)
