@@ -1,3 +1,6 @@
+"""
+Code pour m5stack ui flow, si tu veux le faire fonctionenr sur pycharm il faut le modifier, demandes à chat oklm le s
+"""
 from m5stack import *
 from m5stack_ui import *
 from uiflow import *
@@ -6,24 +9,21 @@ import time
 import unit
 import urequests
 import hashlib
+import wifiCfg
 
-# --- Connexion Wi-Fi ---
-ssid = 'TON_SSID'
-password = 'TON_MDP'
-sta_if = network.WLAN(network.STA_IF)
-sta_if.active(True)
-sta_if.connect(ssid, password)
+wifiCfg.doConnect('zpo-28857', 'u60y-r3tl-rzfn-qrgq')
 
-# Affichage Wi-Fi (optionnel)
 wifi_status = M5TextBox(20, 20, "Connexion...", lcd.FONT_DejaVu18, 0x000000)
 timeout = 10
-while not sta_if.isconnected() and timeout > 0:
+
+while not wifiCfg.wlan_sta.isconnected() and timeout > 0:
     wifi_status.set_text("Connexion WiFi...")
-    time.sleep(1)
+    wait(1)
     timeout -= 1
 
-if sta_if.isconnected():
-    wifi_status.set_text("Connecté : " + sta_if.ifconfig()[0])
+if wifiCfg.wlan_sta.isconnected():
+    ip = wifiCfg.wlan_sta.ifconfig()[0]
+    wifi_status.set_text("Connecté : " + ip)
 else:
     wifi_status.set_text("Erreur WiFi")
 
