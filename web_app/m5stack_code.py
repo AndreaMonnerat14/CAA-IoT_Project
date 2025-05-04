@@ -13,9 +13,9 @@ import wifiCfg
 
 wifiCfg.doConnect('zpo-28857', 'u60y-r3tl-rzfn-qrgq')
 
-wifi_status = M5TextBox(20, 20, "Connexion...", lcd.FONT_DejaVu18, 0x000000)
-timeout = 10
+wifi_status = M5Label("Connexion...", x=20, y=20, color=0x000000, font=FONT_MONT_18)
 
+timeout = 10
 while not wifiCfg.wlan_sta.isconnected() and timeout > 0:
     wifi_status.set_text("Connexion WiFi...")
     wait(1)
