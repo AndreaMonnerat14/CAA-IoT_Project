@@ -1,7 +1,7 @@
 from m5stack import *
 from m5stack_ui import *
 from uiflow import *
-
+import network
 import time
 import unit
 import urequests
