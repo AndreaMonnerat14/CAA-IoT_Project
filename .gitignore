@@ -2,5 +2,5 @@
 ../.venv
 .idea
 assignment1-*.json
-web_app/.env
+.env
 
