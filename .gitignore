@@ -1,0 +1,22 @@
+# Environnement virtuel
+.venv/
+
+# Fichiers PyCharm
+.idea/
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Fichiers système
+.DS_Store
+
+# Fichiers sensibles
+web_app/.env
+assignment1-*.json
+
+# Checkpoints Jupyter
+.ipynb_checkpoints/
+
