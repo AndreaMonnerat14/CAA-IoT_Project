@@ -1,5 +1,14 @@
+<<<<<<< HEAD
 # Environnement virtuel
 .venv/
+
+# Fichiers PyCharm
+.idea/
+
+# Cache Python
+# Environnement virtuel
+.venv/
+../.venv/  # facultatif si certains utilisent le venv en-dehors du dossier
 
 # Fichiers PyCharm
 .idea/
@@ -10,10 +19,11 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Fichiers système
+# Fichiers système (Mac)
 .DS_Store
 
 # Fichiers sensibles
+.env
 web_app/.env
 assignment1-*.json
 
