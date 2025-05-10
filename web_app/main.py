@@ -65,7 +65,7 @@ def send_to_bigquery():
 
             # Get column types
             schema_query = """
-            SELECT * FROM `assignment1-452312.Lab4_IoT_datasets.weather-records` LIMIT 10
+            SELECT * FROM `assignment1-452312.Lab4_IoT_datasets.weather-records` LIMIT 1
             """
             query_job = client.query(schema_query)
             df = query_job.to_dataframe()
@@ -92,7 +92,6 @@ def send_to_bigquery():
             return {"status": "failed", "message": str(e)}, 500
 
     return {"status": "failed", "message": "Method not allowed"}, 405
-
 
 
 # Météo extérieur pour streamlit

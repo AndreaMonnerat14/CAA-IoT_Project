@@ -14,7 +14,7 @@
 .idea/
 
 # Cache Python
-__pycache__/
+_pycache_/
 *.pyc
 *.pyo
 *.pyd
@@ -29,4 +29,3 @@ assignment1-*.json
 
 # Checkpoints Jupyter
 .ipynb_checkpoints/
-
