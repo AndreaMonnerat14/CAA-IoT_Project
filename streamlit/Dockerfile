@@ -1,12 +1,11 @@
-FROM python:3.10-slim
+FROM python:3.12
 
 WORKDIR /app
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py ./
+RUN pip3 install --no-cache-dir -r requirements.txt
 
-EXPOSE 8080
+COPY . .
 
-CMD ["python", "frontend.py"]
+CMD ["streamlit", "run", "frontend.py", "--server.port=8080", "--server.address=0.0.0.0"]
