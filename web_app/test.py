@@ -15,7 +15,7 @@ data = {
     }
 }
 
-response = requests.post("http://127.0.0.1:8080/send-to-bigquery", json=data)
+response = requests.post(f"{url}/send-to-bigquery", json=data)
 print(response.status_code, response.text)
 
 response = requests.post(str(url + '/get_outdoor_weather'), json = data)
@@ -27,7 +27,7 @@ print(res.status_code, res.text)
 payload = {
     "passwd": PASSWD,
     "start_date": "2025-05-01",
-    "end_date": "2025-05-04",
+    "end_date": "2025-05-12",
     "limit": 10
 }
 

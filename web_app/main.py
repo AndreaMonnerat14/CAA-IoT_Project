@@ -164,9 +164,9 @@ def get_indoor_data():
 
         # Add conditions based on the provided start and end dates
         if start_date:
-            conditions.append(f"timestamp >= '{start_date}'")
+            conditions.append(f"date >= '{start_date}'")
         if end_date:
-            conditions.append(f"timestamp <= '{end_date}'")
+            conditions.append(f"date <= '{end_date}'")
 
         if conditions:
             base_q += " WHERE " + " AND ".join(conditions)
