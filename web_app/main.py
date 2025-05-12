@@ -241,7 +241,7 @@ def get_weather_forecast():
             return {"status": "failed", "message": "Authentication error"}, 403
 
         city = body.get("city", "Lausanne")
-        url = f"https://api.openweathermap.org/data/2.5/forecast?q={city}&units=metric&appid={OPENWEATHER_API_KEY}&lang=fr"
+        url = f"https://api.openweathermap.org/data/2.5/forecast?q={city}&units=metric&appid={OPENWEATHER_API_KEY}&lang=en"
         response = requests.get(url)
         forecast = response.json()
 

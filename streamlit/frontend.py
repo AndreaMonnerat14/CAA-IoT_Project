@@ -45,7 +45,7 @@ with tab1:
         st.metric("Indoor Humidity", f"{latest.get('indoor_humidity', '?')} %")
         st.metric("TVOC", f"{latest.get('tvoc', '?')} ppm")
         st.metric("eCO2", f"{latest.get('eco2', '?')} ppm")
-        st.caption(f"Date: {latest.get('date')} — Heure: {latest.get('time')}")
+        st.caption(f"Date: {latest.get('date')} — Time: {latest.get('time')}")
     else:
         st.warning("No data available")
 
@@ -85,12 +85,12 @@ with tab3:
                 future_forecasts = [f for f in forecasts if not f["dt_txt"].startswith(today)]
 
                 # --- Detailed Today View ---
-                st.subheader("📅 Today")
+                st.subheader(f"📅 Today in {city}")
                 for entry in today_forecasts:
                     time_str = entry["dt_txt"].split(" ")[1][:5]
                     temp = entry["main"]["temp"]
-                    desc = entry["weather"][0]["description"]
-                    icon = entry["weather"][0]["icon"]
+                    desc = entry["weather"][0].get("description", "No description")
+                    icon = entry["weather"][0].get("icon", "01d")
                     icon_url = f"http://openweathermap.org/img/wn/{icon}@2x.png"
 
                     with st.expander(f"{time_str} — {desc.capitalize()} — {temp:.1f}°C"):
