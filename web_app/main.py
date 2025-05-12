@@ -176,6 +176,7 @@ def get_indoor_data():
         # Try to query the database and return data
         try:
             df = client.query(base_q).to_dataframe()
+            df = df.astype(str)
             data = df.to_dict(orient="records")
             return {"status": "success", "data": data}
         except Exception as e:
@@ -209,6 +210,7 @@ def get_latest_values():
         if df.empty:
             return {"status": "success", "message": "No data yet", "data": {}}
 
+        df = df.astype(str)
         latest = df.iloc[0].to_dict()
         return {"status": "success", "data": latest}
 
@@ -224,6 +226,7 @@ def get_all_data():
     try:
         query = "SELECT * FROM `assignment1-452312.Lab4_IoT_datasets.weather-records` ORDER BY date DESC"
         df = client.query(query).to_dataframe()
+        df = df.astype(str)
         return {"status": "success", "data": df.to_dict(orient="records")}
     except Exception as e:
         return {"status": "failed", "message": str(e)}, 500

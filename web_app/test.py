@@ -31,7 +31,7 @@ payload = {
     "limit": 10
 }
 
-response = requests.post(f'{url}/get-indoor-data', json=payload)
+#response = requests.post(f'{url}/get-indoor-data', json=payload)
 
 # Output the result
 print("Status Code:", response.status_code)
