@@ -8,29 +8,55 @@ import urequests
 import hashlib
 import ubinascii
 import wifiCfg
-wifiCfg.doConnect('Redmi Note 7', 'local123')
-wifi_status = M5Label("Connexion...", x=20, y=20, color=0x000000, font=FONT_MONT_18)
-timeout = 10
-while not wifiCfg.wlan_sta.isconnected() and timeout > 0:
-    wifi_status.set_text("Connexion WiFi...")
-    wait(1)
-    timeout -= 1
-if wifiCfg.wlan_sta.isconnected():  
-    ip = wifiCfg.wlan_sta.ifconfig()[0]
-    wifi_status.set_text("Connecté : " + ip)
-else:
-    wifi_status.set_text("Erreur WiFi")
-# Écran et capteurs
+
+setScreenColor(0xFFFFFF)
+
+networks = [
+    ('Redmi Note 7', 'local123'),
+    ('MyHomeWiFi', 'mypassword'),
+    ('OtherNetwork', 'password123')
+]
+
+wifi_status = M5Label("Connecting to WiFi...", x=20, y=20, color=0x000000, font=FONT_MONT_18)
+
+def connect_to_known_networks():
+    available = wifiCfg.wlan_sta.scan()
+    available_names = [net[0].decode('utf-8') for net in available]
+
+    for ssid, password in networks:
+        if ssid in available_names:
+            wifi_status.setText(f"Trying {ssid}...")
+            wifiCfg.doConnect(ssid, password)
+            for i in range(10):
+                if wifiCfg.wlan_sta.isconnected():
+                    ip = wifiCfg.wlan_sta.ifconfig()[0]
+                    wifi_status.setText("Connected: " + ip)
+                    return True
+                time.sleep(1)
+    wifi_status.setText("No known networks found.")
+    return False
+
+#--- At start --- #
+connect_to_known_networks()
+
+#Screen and sensors
 screen = M5Screen()
 screen.clean_screen()
 screen.set_screen_bg_color(0xd5d5d5)
 env3_0 = unit.get(unit.ENV3, unit.PORTA)
 air_0 = unit.get(unit.AIR_QUALITY, unit.PORTc)
 wait(2)
-# UI labels
-Temp = M5Label('Temp:', x=19, y=142, color=0x000, font=FONT_MONT_22)
-Humidity = M5Label('Humidity:', x=19, y=183, color=0x000, font=FONT_MONT_22)
-label0 = M5Label('...', x=163, y=142, color=0x000, font=FONT_MONT_22)
+
+#UI fixed labels
+Temp = M5Label('Humidity:', x=19, y=101, color=0x000, font=FONT_MONT_22)
+Humidity = M5Label('Temp:', x=19, y=142, color=0x000, font=FONT_MONT_22)
+TVOC = M5Label('TVOC:', x=19, y=183, color=0x000, font=FONT_MONT_22)
+ECO2 = M5Label('ECO2', x=19, y=220, color=0x000, font=FONT_MONT_22)
+
+#Ui variable labels
+Time = M5Label('...', x=70, y=30, color=0x000, font=FONT_MONT_22)
+labelHumIn = M5Label('Temp:', x=19, y=142, color=0x000, font=FONT_MONT_22)
+labelTempIn = M5Label('...', x=163, y=142, color=0x000, font=FONT_MONT_22)
 label1 = M5Label('...', x=158, y=183, color=0x000, font=FONT_MONT_22)
 label6 = M5Label('In', x=158, y=103, color=0x000, font=FONT_MONT_18)
 label7 = M5Label('Out', x=234, y=103, color=0x000, font=FONT_MONT_18)
@@ -38,6 +64,7 @@ M5Label('TVOC:', x=19, y=220, color=0x000, font=FONT_MONT_22)
 M5Label('eCO2:', x=19, y=260, color=0x000, font=FONT_MONT_22)
 label_tvoc = M5Label('...', x=100, y=220, color=0x000, font=FONT_MONT_22)
 label_eco2 = M5Label('...', x=100, y=260, color=0x000, font=FONT_MONT_22)
+"""
 # Mot de passe → hashé
 passwd = "okmec"
 hash_bytes = hashlib.sha256(passwd.encode()).digest()
@@ -84,8 +111,8 @@ while True:
     except Exception as e:
         print("Erreur M5Stack:", str(e))
     wait(5)
-
-    """import requests
+"""
+"""import requests
 
 ip_info = requests.get("http://ip-api.com/json").json()
 lat = ip_info.get("lat")

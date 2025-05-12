@@ -278,7 +278,7 @@ def generate_tts():
             language_code="en-US", ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
         )
         audio_config = texttospeech.AudioConfig(
-            audio_encoding=texttospeech.AudioEncoding.MP3
+            audio_encoding=texttospeech.AudioEncoding.LINEAR16
         )
 
         # Perform the TTS request
@@ -287,10 +287,10 @@ def generate_tts():
         )
 
         # Save to a temporary MP3 file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as out:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".waw") as out:
             out.write(response.audio_content)
             out.flush()
-            return send_file(out.name, mimetype='audio/mpeg')
+            return send_file(out.name, mimetype='audio/waw')
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
