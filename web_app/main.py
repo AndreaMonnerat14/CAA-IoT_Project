@@ -3,6 +3,7 @@ from flask import Flask, request
 import os
 import dotenv
 from flask.cli import load_dotenv
+from google.auth.exceptions import DefaultCredentialsError
 from google.cloud import bigquery
 import requests
 from datetime import datetime
@@ -16,8 +17,12 @@ HASH_PASSWD = os.environ.get("HASH_PASSWD")
 # Initialize BigQuery client
 try:
     client = bigquery.Client(project="assignment1-452312", location="europe-west6")
+    print("BigQuery client initialized.")
+except DefaultCredentialsError as e:
+    print(f"Missing credentials: {e}")
+    client = None
 except Exception as e:
-    print(f"Error initializing BigQuery client: {e}")
+    print(f"Failed to initialize BigQuery client: {e}")
     client = None
 
 #%%
