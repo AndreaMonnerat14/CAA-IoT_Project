@@ -8,9 +8,9 @@ import urequests
 import hashlib
 import ubinascii
 import wifiCfg
+import ntptime
 
-setScreenColor(0xFFFFFF)
-
+"""
 networks = [
     ('Redmi Note 7', 'local123'),
     ('MyHomeWiFi', 'mypassword'),
@@ -25,45 +25,82 @@ def connect_to_known_networks():
 
     for ssid, password in networks:
         if ssid in available_names:
-            wifi_status.setText(f"Trying {ssid}...")
+            wifi_status.set_text("Trying " + str(ssid) + "...")
             wifiCfg.doConnect(ssid, password)
             for i in range(10):
                 if wifiCfg.wlan_sta.isconnected():
                     ip = wifiCfg.wlan_sta.ifconfig()[0]
-                    wifi_status.setText("Connected: " + ip)
+                    wifi_status.set_text("Connected: " + ip)
                     return True
                 time.sleep(1)
-    wifi_status.setText("No known networks found.")
+    wifi_status.set_text("No known networks found.")
     return False
 
 #--- At start --- #
-connect_to_known_networks()
+if connect_to_known_networks():
+  wifi_status.set_text("Connected !")
+"""
 
-#Screen and sensors
+# password
+passwd = "okmec"
+hash_bytes = hashlib.sha256(passwd.encode()).digest()
+passwd = ubinascii.hexlify(hash_bytes).decode()
+
+# Time
+ntp = ntptime.client(host='cn.pool.ntp.org', timezone=2)
+
+
+# TTS function
+def get_tts(text):
+    url = "https://caa-iot-project-1008838592938.europe-west6.run.app/generate-tts"
+    response = urequests.post(url, json={"text": text, "passwd": passwd})
+    if response.status_code == 200:
+        with open('tts.wav', 'wb') as f:
+            f.write(response.content)
+        response.close()
+        return True
+    else:
+        print("TTS request failed:", response.text)
+        return False
+
+
+# Screen and sensors
 screen = M5Screen()
 screen.clean_screen()
 screen.set_screen_bg_color(0xd5d5d5)
 env3_0 = unit.get(unit.ENV3, unit.PORTA)
-air_0 = unit.get(unit.AIR_QUALITY, unit.PORTc)
-wait(2)
+air_0 = unit.get(unit.TVOC, unit.PORTC)
+wait(1)
 
-#UI fixed labels
-Temp = M5Label('Humidity:', x=19, y=101, color=0x000, font=FONT_MONT_22)
-Humidity = M5Label('Temp:', x=19, y=142, color=0x000, font=FONT_MONT_22)
-TVOC = M5Label('TVOC:', x=19, y=183, color=0x000, font=FONT_MONT_22)
-ECO2 = M5Label('ECO2', x=19, y=220, color=0x000, font=FONT_MONT_22)
+# UI fixed labels
+Temp = M5Label('Humidity:', x=19, y=101, color=0x000, font=FONT_MONT_18)
+Humidity = M5Label('Temp:', x=19, y=142, color=0x000, font=FONT_MONT_18)
+TVOC = M5Label('TVOC:', x=19, y=183, color=0x000, font=FONT_MONT_18)
+ECO2 = M5Label('ECO2', x=19, y=220, color=0x000, font=FONT_MONT_18)
 
-#Ui variable labels
-Time = M5Label('...', x=70, y=30, color=0x000, font=FONT_MONT_22)
-labelHumIn = M5Label('Temp:', x=19, y=142, color=0x000, font=FONT_MONT_22)
-labelTempIn = M5Label('...', x=163, y=142, color=0x000, font=FONT_MONT_22)
-label1 = M5Label('...', x=158, y=183, color=0x000, font=FONT_MONT_22)
+# Ui variable labels
+Time = M5Label('...', x=90, y=15, color=0x000, font=FONT_MONT_18)
+labelHumIn = M5Label('Temp:', x=19, y=142, color=0x000, font=FONT_MONT_18)
+labelTempIn = M5Label('...', x=163, y=142, color=0x000, font=FONT_MONT_18)
+label1 = M5Label('...', x=158, y=183, color=0x000, font=FONT_MONT_18)
 label6 = M5Label('In', x=158, y=103, color=0x000, font=FONT_MONT_18)
 label7 = M5Label('Out', x=234, y=103, color=0x000, font=FONT_MONT_18)
-M5Label('TVOC:', x=19, y=220, color=0x000, font=FONT_MONT_22)
-M5Label('eCO2:', x=19, y=260, color=0x000, font=FONT_MONT_22)
-label_tvoc = M5Label('...', x=100, y=220, color=0x000, font=FONT_MONT_22)
-label_eco2 = M5Label('...', x=100, y=260, color=0x000, font=FONT_MONT_22)
+M5Label('TVOC:', x=19, y=220, color=0x000, font=FONT_MONT_18)
+M5Label('eCO2:', x=19, y=260, color=0x000, font=FONT_MONT_18)
+label_tvoc = M5Label('...', x=100, y=220, color=0x000, font=FONT_MONT_18)
+label_eco2 = M5Label('...', x=100, y=260, color=0x000, font=FONT_MONT_18)
+count = 0
+
+while True:
+    """
+    count += 1
+    if get_tts(str("It's been " + str(10*count) + "seconds")):
+      speaker.playWAV("tts.wav", volume = 6)
+    else:
+      Time.set_text(ntp.formatDatetime('-', ':'))
+      #speaker.playWAV("res/tts.wav", volume = 10)"""
+    wait(10)
+
 """
 # Mot de passe → hashé
 passwd = "okmec"

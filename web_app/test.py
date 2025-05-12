@@ -36,7 +36,7 @@ payload = {
 # Output the result
 print("Status Code:", response.status_code)
 print("Response JSON:", response.json())
-"""
+
 payload = {
     "passwd": PASSWD,
     "text": "Hi Andrea! Comment tu te port espace the fasho?"
@@ -44,9 +44,8 @@ payload = {
 
 response = requests.post(f'{url}/generate-tts', json=payload)
 if response.status_code == 200:
-    with open("tts_output.mp3", "wb") as f:
+    with open("tts_output.wav", "wb") as f:
         f.write(response.content)
     print("✅ TTS audio saved as 'tts_output.mp3'")
 else:
     print(f"❌ Error {response.status_code}: {response.text}")
-"""
