@@ -51,11 +51,11 @@ def send_to_bigquery():
 
             # Add current date/time if not present
             if "date" not in data:
-                data["date"] = datetime.utcnow().date().isoformat()
+                data["date"] = datetime.now().date().isoformat()
             if "time" not in data:
-                data["time"] = datetime.utcnow().time().strftime("%H:%M:%S")
+                data["time"] = datetime.now().time().strftime("%H:%M:%S")
 
-            data["timestamp"] = datetime.utcnow().isoformat()
+            data["timestamp"] = datetime.now().isoformat()
 
             # Enrich with outdoor weather from OpenWeatherMap
             try:

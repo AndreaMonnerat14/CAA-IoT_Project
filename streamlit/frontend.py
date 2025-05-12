@@ -60,9 +60,9 @@ while True:
             df['timestamp'] = pd.to_datetime(df['timestamp'])
             df = df.sort_values("timestamp")
 
-            st.line_chart(df.set_index("timestamp")[['indoor_temp', 'outdoor_temp']])
+            st.line_chart(df.set_index("timestamp")[['indoor_temp']]) #, 'outdoor_temp']])
             st.line_chart(df.set_index("timestamp")[['indoor_humidity']])
-            st.line_chart(df.set_index("timestamp")[['tvoc', 'eco2']])
+            #st.line_chart(df.set_index("timestamp")[['tvoc', 'eco2']])
         else:
             st.warning("No historical data found")
 
