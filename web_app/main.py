@@ -98,19 +98,25 @@ def send_to_bigquery():
 @app.route('/get_outdoor_weather', methods=['GET', 'POST'])
 def get_outdoor_weather():
     try:
-        body = request.get_json(force=True)
-        if not body or 'passwd' not in body:
-            return {"status": "failed", "message": "Missing password"}, 400
-        if body["passwd"] != HASH_PASSWD:
+        if request.method == 'GET':
+            passwd = request.args.get("passwd")
+            lat = float(request.args.get("lat", 46.4))
+            lon = float(request.args.get("lon", 6.3))
+        else:
+            body = request.get_json(force=True)
+            if not body or 'passwd' not in body:
+                return {"status": "failed", "message": "Missing password"}, 400
+            passwd = body["passwd"]
+            lat = float(body.get("lat", 46.4))
+            lon = float(body.get("lon", 6.3))
+
+        if passwd != HASH_PASSWD:
             return {"status": "failed", "message": "Incorrect password"}, 403
+
     except Exception as e:
-        return {"status": "failed", "message": f"Invalid JSON: {str(e)}"}, 400
+        return {"status": "failed", "message": f"Invalid request: {str(e)}"}, 400
 
     try:
-        lat = body["lat"]
-        lon = body["lon"]
-        #lat, lon = 46.4, 6.3  # Rolle
-
         url = (
             f"https://api.openweathermap.org/data/2.5/weather?"
             f"lat={lat}&lon={lon}&units=metric&appid={OPENWEATHER_API_KEY}&lang=fr"
@@ -130,9 +136,9 @@ def get_outdoor_weather():
         return {"status": "failed", "message": str(e)}, 500
 
 # Pour afficher les données indoor sur le streamlit
-@app.route('/get-indoor-data', methods=['GET', 'POST'])
+@app.route('/get-indoor-data', methods=['GET'])
 def get_indoor_data():
-    if request.method == 'POST':
+    try:
         body = request.get_json(force=True)
 
         if not body or "passwd" not in body:
@@ -165,7 +171,10 @@ def get_indoor_data():
         except Exception as e:
             return {"status": "failed", "message": str(e)}, 500
 
-    return {"status": "failed", "message": "Method not allowed"}, 405
+    except Exception as e:
+        return {"status": "failed", "message": "Method not allowed"}, 405
+
+
 
 
 # Pour afficher les dernières valeurs du m5stack au redémarrage
