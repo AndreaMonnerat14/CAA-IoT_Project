@@ -84,3 +84,9 @@ while True:
     except Exception as e:
         print("Erreur M5Stack:", str(e))
     wait(5)
+
+    """import requests
+
+ip_info = requests.get("http://ip-api.com/json").json()
+lat = ip_info.get("lat")
+lon = ip_info.get("lon")"""
