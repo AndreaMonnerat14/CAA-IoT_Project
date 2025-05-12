@@ -287,10 +287,10 @@ def generate_tts():
         )
 
         # Save to a temporary MP3 file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".waw") as out:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as out:
             out.write(response.audio_content)
             out.flush()
-            return send_file(out.name, mimetype='audio/waw')
+            return send_file(out.name, mimetype='audio/wav')
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
