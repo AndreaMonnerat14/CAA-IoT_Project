@@ -208,5 +208,36 @@ def get_latest_values():
     except Exception as e:
         return {"status": "failed", "message": str(e)}, 500
 
+
+@app.route('/get-all-data', methods=['POST'])
+def get_all_data():
+    body = request.get_json(force=True)
+    if not body or body.get("passwd") != HASH_PASSWD:
+        return {"status": "failed", "message": "Authentication error"}, 403
+    try:
+        query = "SELECT * FROM `assignment1-452312.Lab4_IoT_datasets.weather-records` ORDER BY timestamp DESC"
+        df = client.query(query).to_dataframe()
+        return {"status": "success", "data": df.to_dict(orient="records")}
+    except Exception as e:
+        return {"status": "failed", "message": str(e)}, 500
+
+@app.route('/get-weather-forecast', methods=['POST'])
+def get_weather_forecast():
+    try:
+        body = request.get_json(force=True)
+        if not body or body.get("passwd") != HASH_PASSWD:
+            return {"status": "failed", "message": "Authentication error"}, 403
+
+        city = body.get("city", "Lausanne")
+        url = f"https://api.openweathermap.org/data/2.5/forecast?q={city}&units=metric&appid={OPENWEATHER_API_KEY}&lang=fr"
+        response = requests.get(url)
+        forecast = response.json()
+
+        return {"status": "success", "forecast": forecast}
+
+    except Exception as e:
+        return {"status": "failed", "message": str(e)}, 500
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)

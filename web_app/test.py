@@ -16,5 +16,5 @@ data = {
 
 
 
-response = requests.get(str(url + 'get_outdoor_weather'), json = data)
+response = requests.post(str(url + 'get_outdoor_weather'), json = data)
 print(response.status_code, response.text)

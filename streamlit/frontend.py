@@ -1,98 +1,72 @@
 import streamlit as st
 import requests
+import pandas as pd
 import datetime
-import time
 import os
 
-# 🔐 Mot de passe hashé
 PASSWD = os.environ.get("HASH_PASSWD")
-
-# 🌍 URL de ton backend Flask déployé (Cloud Run)
 API_BASE_URL = "https://caa-iot-project-1008838592938.europe-west6.run.app"
 
-# 📌 Fonctions API
-def get_latest_values():
-    r = requests.post(f"{API_BASE_URL}/get-latest-values", json={"passwd": PASSWD})
-    return r.json()
-
-def get_outdoor_weather():
-    try:
-        r = requests.post(f"{API_BASE_URL}/get_outdoor_weather", json={"passwd": PASSWD})
-        print("Status Code:", r.status_code)
-        print("Raw response text:", r.text)  # 👈 add this line
-        r.raise_for_status()  # raises HTTPError for bad responses (4xx or 5xx)
-        return r.json()
-    except Exception as e:
-        st.error(f"Error fetching outdoor weather: {e}")
-        return {}
-
-def get_indoor_data(start_date=None, end_date=None, limit=100):
-    body = {
-        "passwd": PASSWD,
-        "start_date": start_date,
-        "end_date": end_date,
-        "limit": limit,
-    }
-    r = requests.post(f"{API_BASE_URL}/get-indoor-data", json=body)
-    return r.json()
-
-# 🎛️ UI
 st.set_page_config(page_title="IoT Dashboard", layout="wide")
 st.title("🌡️ IoT Weather Dashboard")
 
-tab1, tab2, tab3 = st.tabs(["🔍 Latest Values", "📊 History", "🌤️ Outdoor Weather"])
+tab1, tab2, tab3, tab4 = st.tabs(["📍 Current State", "📈 History", "🌤️ Forecast", "🏠 Control"])
 
-while True:
-    # ✅ Tab 1: Latest
-    with tab1:
-        st.subheader("Latest Indoor Values")
-        data = get_latest_values()
-        if data["status"] == "success" and data["data"]:
-            vals = data["data"]
-            st.metric("🌡️ Température intérieure", f"{vals.get('indoor_temp', '?')} °C")
-            st.metric("💧 Humidité intérieure", f"{vals.get('indoor_humidity', '?')} %")
-            st.metric("🟡 TVOC", f"{vals.get('tvoc', '?')} ppm")
-            st.metric("🟢 eCO₂", f"{vals.get('eco2', '?')} ppm")
-            st.caption(f"Date: {vals.get('date')} — Heure: {vals.get('time')}")
+# --- Tab 1: Current State ---
+with tab1:
+    st.header("Current Indoor & Outdoor Conditions")
+    res = requests.post(f"{API_BASE_URL}/get-all-data", json={"passwd": PASSWD})
+    data = res.json().get("data", [])
+    if data:
+        latest = data[0]
+        st.metric("Indoor Temp", f"{latest.get('indoor_temp', '?')} °C")
+        st.metric("Outdoor Temp", f"{latest.get('outdoor_temp', '?')} °C")
+        st.metric("Indoor Humidity", f"{latest.get('indoor_humidity', '?')} %")
+        st.metric("TVOC", f"{latest.get('tvoc', '?')} ppm")
+        st.metric("eCO2", f"{latest.get('eco2', '?')} ppm")
+        st.caption(f"Date: {latest.get('date')} — Heure: {latest.get('time')}")
+    else:
+        st.warning("No data available")
+
+# --- Tab 2: Historical Graphs ---
+with tab2:
+    st.header("Historical Sensor Data")
+    res = requests.post(f"{API_BASE_URL}/get-all-data", json={"passwd": PASSWD})
+    data = res.json().get("data", [])
+    if data:
+        df = pd.DataFrame(data)
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df = df.sort_values("timestamp")
+
+        st.line_chart(df.set_index("timestamp")[['indoor_temp', 'outdoor_temp']])
+        st.line_chart(df.set_index("timestamp")[['indoor_humidity']])
+        st.line_chart(df.set_index("timestamp")[['tvoc', 'eco2']])
+    else:
+        st.warning("No historical data found")
+
+# --- Tab 3: Weather Forecast ---
+with tab3:
+    st.header("Weather Forecast")
+    city = st.text_input("Enter your city", value="Lausanne")
+    if st.button("Get Forecast"):
+        res = requests.post(f"{API_BASE_URL}/get-weather-forecast", json={"passwd": PASSWD, "city": city})
+        forecast = res.json().get("forecast", {})
+        if forecast:
+            forecasts = forecast.get("list", [])[:8]  # next 24 hours (3h interval)
+            for entry in forecasts:
+                dt = entry["dt_txt"]
+                temp = entry["main"]["temp"]
+                desc = entry["weather"][0]["description"]
+                st.write(f"**{dt}** — {temp}°C — {desc}")
         else:
-            st.error("Aucune donnée disponible.")
+            st.error("No forecast found")
 
-    # ✅ Tab 2: Historical Data
-    with tab2:
-        st.subheader("History")
-        col1, col2 = st.columns(2)
-        with col1:
-            start = st.date_input("Start date", value=datetime.date.today() - datetime.timedelta(days=3))
-        with col2:
-            end = st.date_input("End date", value=datetime.date.today())
-        limit = st.slider("Nombre de lignes à afficher", 10, 500, 100)
-
-        if st.button("Charger l'historique"):
-            hist = get_indoor_data(str(start), str(end), limit)
-            if hist["status"] == "success":
-                df = hist["data"]
-                if df:
-                    import pandas as pd
-                    df = pd.DataFrame(df)
-                    st.dataframe(df)
-                else:
-                    st.warning("Aucune donnée pour cette période.")
-            else:
-                st.error(hist.get("message", "Erreur inconnue"))
-
-    # ✅ Tab 3: Outdoor Weather
-    with tab3:
-        st.subheader("Météo extérieure actuelle")
-        out = get_outdoor_weather()
-        if out["status"] == "success":
-            st.metric("🌡️ Température", f"{out['outdoor_temp']} °C")
-            st.metric("💧 Humidité", f"{out['outdoor_humidity']} %")
-            st.text(f"🌥️ {out['weather_description']}")
-        else:
-            st.error(out.get("message", "Erreur de récupération météo."))
-
-    time.sleep(300)
-
-# ✅ Lancer automatiquement sur port 8080 pour Cloud Run
-if __name__ == "__main__":
-    os.system(f"streamlit run app.py --server.port=8080 --server.enableCORS=false")
+# --- Tab 4: Control ---
+with tab4:
+    st.header("Household Controls (Mock)")
+    if st.button("💡 Turn Lights ON"):
+        st.success("Lights turned ON (simulated)")
+    if st.button("🌡️ Turn Heater ON"):
+        st.success("Heater turned ON (simulated)")
+    if st.button("🪟 Open Windows"):
+        st.success("Windows opened (simulated)")
