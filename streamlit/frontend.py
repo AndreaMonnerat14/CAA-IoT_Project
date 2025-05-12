@@ -87,9 +87,7 @@ with tab3:
                 # --- Detailed Today View ---
                 st.subheader("📅 Today")
                 for entry in today_forecasts:
-                    utc_time = datetime.strptime(entry["dt_txt"], "%Y-%m-%d %H:%M:%S")
-                    local_time = utc_time.replace(tzinfo=pytz.utc).astimezone(LOCAL_TZ)
-                    time_str = local_time.strftime("%H:%M")
+                    time_str = entry["dt_txt"].split(" ")[1][:5]
 
                     temp = entry["main"]["temp"]
                     desc = entry["weather"][0].get("description", "No description")
