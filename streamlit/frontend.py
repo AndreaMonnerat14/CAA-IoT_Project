@@ -14,12 +14,11 @@ st.set_page_config(page_title="IoT Dashboard", layout="wide")
 def get_all_data():
     try:
         response = requests.post(f"{API_BASE_URL}/get-all-data", json={"passwd": PASSWD})
-        if response.status_code == 200:
-            if response:
-                return response.json()
+        if response.ok:
+            return response.json().get("data", [])
     except Exception as e:
-        print(f'unable to recover data: {e}')
-        return None
+        print(f"Unable to recover data: {e}")
+    return None
 
 st.title("🌡️ IoT Weather Dashboard")
 
