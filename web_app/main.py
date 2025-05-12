@@ -140,19 +140,22 @@ def get_indoor_data():
         # Parse the request body (assuming it's JSON)
         body = request.get_json(force=True)
 
+        # Check if the password is provided and correct
         if not body or "passwd" not in body:
             return {"status": "failed", "message": "Missing password"}, 400
         if body["passwd"] != HASH_PASSWD:
             return {"status": "failed", "message": "Incorrect password"}, 403
 
+        # Get parameters from the request body
         start_date = body.get("start_date")  # ex: "2025-05-01"
         end_date = body.get("end_date")      # ex: "2025-05-04"
-        limit = int(body.get("limit", 100))
+        limit = int(body.get("limit", 100))  # Default limit is 100
 
-        # Build query (example query for BigQuery)
-        base_q = "SELECT * FROM `your_project.your_dataset.your_table`"
+        # Build the query for the database
+        base_q = "SELECT * FROM `assignment1-452312.Lab4_IoT_datasets.weather-records`"
         conditions = []
 
+        # Add conditions based on the provided start and end dates
         if start_date:
             conditions.append(f"timestamp >= '{start_date}'")
         if end_date:
@@ -163,13 +166,16 @@ def get_indoor_data():
 
         base_q += f" ORDER BY timestamp DESC LIMIT {limit}"
 
-        # Assuming client.query(base_q) returns data in the expected format
-        data = [{"timestamp": "2025-05-01", "temperature": 21.5}]  # Sample response
-
-        return {"status": "success", "data": data}
+        # Try to query the database and return data
+        try:
+            df = client.query(base_q).to_dataframe()
+            data = df.to_dict(orient="records")
+            return {"status": "success", "data": data}
+        except Exception as e:
+            return {"status": "failed", "message": str(e)}, 500
 
     except Exception as e:
-        return {"status": "failed", "message": f"Error: {str(e)}"}, 500
+        return {"status": "failed", "message": "Invalid request or method not allowed"}, 400
 
 
 
