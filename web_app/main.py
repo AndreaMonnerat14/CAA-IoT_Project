@@ -97,9 +97,10 @@ def send_to_bigquery():
 # Météo extérieur pour streamlit
 @app.route('/get_outdoor_weather', methods=['GET', 'POST'])
 def get_outdoor_weather():
-    if request.method == 'POST':
-        if request.get_json(force=True).get("passwd") != HASH_PASSWD:
-            return {"status": "failed", "message": "Incorrect password"}, 403
+    if request.get_json(force=True).get("passwd") != HASH_PASSWD:
+        return {"status": "failed", "message": "Incorrect password"}, 403
+    if 'passwd' not in request.get_json(force=True):
+        return {"status": "failed", "message": "Missing password"}, 400
 
     try:
         lat, lon = 46.4, 6.3  # Rolle par exemple

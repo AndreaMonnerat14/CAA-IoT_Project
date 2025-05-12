@@ -16,8 +16,15 @@ def get_latest_values():
     return r.json()
 
 def get_outdoor_weather():
-    r = requests.get(f"{API_BASE_URL}/get_outdoor_weather", json={"passwd": PASSWD})
-    return r.json()
+    try:
+        r = requests.post(f"{API_BASE_URL}/get_outdoor_weather", json={"passwd": PASSWD})
+        print("Status Code:", r.status_code)
+        print("Raw response text:", r.text)  # 👈 add this line
+        r.raise_for_status()  # raises HTTPError for bad responses (4xx or 5xx)
+        return r.json()
+    except Exception as e:
+        st.error(f"Error fetching outdoor weather: {e}")
+        return {}
 
 def get_indoor_data(start_date=None, end_date=None, limit=100):
     body = {
