@@ -95,7 +95,7 @@ def send_to_bigquery():
 
 
 # Météo extérieur pour streamlit
-@app.route('/get_outdoor_weather', methods=['POST'])
+@app.route('/get_outdoor_weather', methods=['Get', 'POST'])
 def get_outdoor_weather():
     try:
         body = request.get_json(force=True)
@@ -107,6 +107,8 @@ def get_outdoor_weather():
         return {"status": "failed", "message": f"Invalid JSON: {str(e)}"}, 400
 
     try:
+        lat = body["lat"]
+        lon = body["lon"]
         lat, lon = 46.4, 6.3  # Rolle
 
         url = (
