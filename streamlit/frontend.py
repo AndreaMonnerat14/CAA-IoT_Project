@@ -69,6 +69,8 @@ with tab3:
     st.header("🌤️ Weather Forecast")
     city = st.text_input("Enter your city", value="Lausanne")
 
+
+
     if st.button("Get Forecast"):
         res = requests.post(f"{API_BASE_URL}/get-weather-forecast", json={"passwd": PASSWD, "city": city})
 

@@ -89,4 +89,18 @@ while True:
 
 ip_info = requests.get("http://ip-api.com/json").json()
 lat = ip_info.get("lat")
-lon = ip_info.get("lon")"""
+lon = ip_info.get("lon")
+
+def get_tts(text):
+    url = "https://caa-iot-project-1008838592938.europe-west6.run.app/generate-tts"
+    response = urequests.post(url, json={"text": text})
+    if response.status_code == 200:
+        with open('/flash/tts.mp3', 'wb') as f:
+            f.write(response.content)
+        response.close()
+        return True
+    else:
+        print("TTS request failed:", response.text)
+        return False
+
+"""

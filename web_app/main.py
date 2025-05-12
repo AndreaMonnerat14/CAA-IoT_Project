@@ -1,12 +1,14 @@
 #%%
-from flask import Flask, request
+from flask import Flask, request, send_file, jsonify
 import os
 import dotenv
 from flask.cli import load_dotenv
 from google.auth.exceptions import DefaultCredentialsError
 from google.cloud import bigquery
+from google.cloud import texttospeech
 import requests
 from datetime import datetime
+import tempfile
 import pandas as pd
 
 load_dotenv()
@@ -247,6 +249,40 @@ def get_weather_forecast():
 
     except Exception as e:
         return {"status": "failed", "message": str(e)}, 500
+
+@app.route('/generate-tts', methods=['POST'])
+def generate_tts():
+    try:
+        body = request.get_json(force=True)
+        text = body.get("text")
+
+        if not text:
+            return jsonify({"error": "Missing 'text' in request"}), 400
+
+        # Set up the client
+        client = texttospeech.TextToSpeechClient()
+
+        input_text = texttospeech.SynthesisInput(text=text)
+        voice = texttospeech.VoiceSelectionParams(
+            language_code="en-US", ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+        )
+        audio_config = texttospeech.AudioConfig(
+            audio_encoding=texttospeech.AudioEncoding.MP3
+        )
+
+        # Perform the TTS request
+        response = client.synthesize_speech(
+            input=input_text, voice=voice, audio_config=audio_config
+        )
+
+        # Save to a temporary MP3 file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as out:
+            out.write(response.audio_content)
+            out.flush()
+            return send_file(out.name, mimetype='audio/mpeg')
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':
