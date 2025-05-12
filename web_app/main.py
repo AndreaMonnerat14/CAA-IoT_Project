@@ -254,6 +254,10 @@ def get_weather_forecast():
 def generate_tts():
     try:
         body = request.get_json(force=True)
+
+        if not body or body.get("passwd") != HASH_PASSWD:
+            return {"status": "failed", "message": "Authentication error"}, 403
+
         text = body.get("text")
 
         if not text:

@@ -69,8 +69,6 @@ with tab3:
     st.header("🌤️ Weather Forecast")
     city = st.text_input("Enter your city", value="Lausanne")
 
-
-
     if st.button("Get Forecast"):
         res = requests.post(f"{API_BASE_URL}/get-weather-forecast", json={"passwd": PASSWD, "city": city})
 
@@ -78,9 +76,32 @@ with tab3:
             forecast_data = res.json().get("forecast", {})
             if forecast_data:
                 forecasts = forecast_data.get("list", [])
-                daily_summary = {}
 
-                for entry in forecasts:
+                # Get today's date
+                today = datetime.date.today().strftime("%Y-%m-%d")
+
+                # Separate today's forecasts and future dates
+                today_forecasts = [f for f in forecasts if f["dt_txt"].startswith(today)]
+                future_forecasts = [f for f in forecasts if not f["dt_txt"].startswith(today)]
+
+                # --- Detailed Today View ---
+                st.subheader("📅 Today")
+                for entry in today_forecasts:
+                    time_str = entry["dt_txt"].split(" ")[1][:5]
+                    temp = entry["main"]["temp"]
+                    desc = entry["weather"][0]["description"]
+                    icon = entry["weather"][0]["icon"]
+                    icon_url = f"http://openweathermap.org/img/wn/{icon}@2x.png"
+
+                    with st.expander(f"{time_str} — {desc.capitalize()} — {temp:.1f}°C"):
+                        st.image(icon_url, width=64)
+                        st.write(f"**{desc.capitalize()}** — {temp:.1f}°C")
+
+                # --- Daily Summaries ---
+                st.subheader("📆 Later This Week")
+
+                daily_summary = {}
+                for entry in future_forecasts:
                     date = entry["dt_txt"].split(" ")[0]
                     temp = entry["main"]["temp"]
                     desc = entry["weather"][0]["description"]
@@ -94,16 +115,18 @@ with tab3:
                         }
                     daily_summary[date]["temps"].append(temp)
 
-                for date, info in list(daily_summary.items())[:5]:  # Limit to 5 days
-                    min_temp = min(info["temps"])
-                    max_temp = max(info["temps"])
-                    icon_url = f"http://openweathermap.org/img/wn/{info['icon']}@2x.png"
-                    st.markdown(f"### 📅 {date}")
-                    st.image(icon_url, width=80)
-                    st.write(f"**{info['desc'].capitalize()}**")
-                    st.metric("🌡️ Température max", f"{max_temp:.1f}°C")
-                    st.metric("🌡️ Température min", f"{min_temp:.1f}°C")
-                    st.markdown("---")
+                # Show next few days (up to 4 days in columns)
+                days = list(daily_summary.items())[:4]
+                cols = st.columns(len(days))
+
+                for col, (date, info) in zip(cols, days):
+                    with col:
+                        st.markdown(f"**📅 {date}**")
+                        icon_url = f"http://openweathermap.org/img/wn/{info['icon']}@2x.png"
+                        st.image(icon_url, width=64)
+                        st.write(f"{info['desc'].capitalize()}")
+                        st.metric("Max", f"{max(info['temps']):.1f}°C")
+                        st.metric("Min", f"{min(info['temps']):.1f}°C")
             else:
                 st.warning("No forecast data found.")
         else:
