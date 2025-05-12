@@ -10,6 +10,7 @@ import requests
 from datetime import datetime
 import tempfile
 import pandas as pd
+import pytz
 
 load_dotenv()
 # You only need to uncomment the line below if you want to run your flask app locally.
@@ -29,6 +30,14 @@ except Exception as e:
 
 #%%
 app = Flask(__name__)
+
+def get_local_datetime_info(timezone_str="Europe/Zurich"):
+    now = datetime.now(ZoneInfo(timezone_str))
+    return {
+        "date": now.date().isoformat(),
+        "time": now.time().strftime("%H:%M:%S"),
+        "timestamp": now.isoformat()
+    }
 
 #%%
 @app.route('/send-to-bigquery', methods=['GET', 'POST'])
@@ -52,12 +61,10 @@ def send_to_bigquery():
                 return {"status": "failed", "message": "Missing 'values' field"}, 400
 
             # Add current date/time if not present
-            if "date" not in data:
-                data["date"] = datetime.now().date().isoformat()
-            if "time" not in data:
-                data["time"] = datetime.now().time().strftime("%H:%M:%S")
-
-            data["timestamp"] = datetime.now().isoformat()
+            datetime_info = get_local_datetime_info()
+            data["date"] = datetime_info["date"]
+            data["time"] = datetime_info["time"]
+            data["timestamp"] = datetime_info["timestamp"] #using correct timestamp
 
             # Enrich with outdoor weather from OpenWeatherMap
             try:

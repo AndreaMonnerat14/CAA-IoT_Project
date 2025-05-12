@@ -85,17 +85,26 @@ with tab3:
                 future_forecasts = [f for f in forecasts if not f["dt_txt"].startswith(today)]
 
                 # --- Detailed Today View ---
-                st.subheader(f"📅 Today in {city}")
+                st.subheader("📅 Today")
                 for entry in today_forecasts:
-                    time_str = entry["dt_txt"].split(" ")[1][:5]
+                    utc_time = datetime.strptime(entry["dt_txt"], "%Y-%m-%d %H:%M:%S")
+                    local_time = utc_time.replace(tzinfo=pytz.utc).astimezone(LOCAL_TZ)
+                    time_str = local_time.strftime("%H:%M")
+
                     temp = entry["main"]["temp"]
                     desc = entry["weather"][0].get("description", "No description")
                     icon = entry["weather"][0].get("icon", "01d")
                     icon_url = f"http://openweathermap.org/img/wn/{icon}@2x.png"
 
-                    with st.expander(f"{time_str} — {desc.capitalize()} — {temp:.1f}°C"):
-                        st.image(icon_url, width=64)
-                        st.write(f"**{desc.capitalize()}** — {temp:.1f}°C")
+                    col1, col2, col3, col4 = st.columns([1, 2, 3, 1])
+                    with col1:
+                        st.markdown(f"**{time_str}**")
+                    with col2:
+                        st.image(icon_url, width=50)
+                    with col3:
+                        st.markdown(desc.capitalize())
+                    with col4:
+                        st.metric(label="", value=f"{temp:.1f}°C")
 
                 # --- Daily Summaries ---
                 st.subheader("📆 Later This Week")
@@ -121,7 +130,9 @@ with tab3:
 
                 for col, (date, info) in zip(cols, days):
                     with col:
-                        st.markdown(f"**📅 {date}**")
+                        day_name = datetime.strptime(date, "%Y-%m-%d").strftime("%A")
+                        st.markdown(f"**📅 {day_name}**")
+                        #st.markdown(f"**📅 {date}**")
                         icon_url = f"http://openweathermap.org/img/wn/{info['icon']}@2x.png"
                         st.image(icon_url, width=64)
                         st.write(f"{info['desc'].capitalize()}")
