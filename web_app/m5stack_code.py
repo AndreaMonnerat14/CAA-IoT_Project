@@ -65,7 +65,7 @@ while True:
         else:
             screen.set_screen_bg_color(0xd5d5d5)
         # Envoi toutes les 5 minutes (300 s)
-        if temp_flag >= 300:
+        if temp_flag % 300:
             data = {
                 "passwd": passwd_hash,
                 "values": {

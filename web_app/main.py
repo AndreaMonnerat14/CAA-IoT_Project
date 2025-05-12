@@ -55,6 +55,8 @@ def send_to_bigquery():
             if "time" not in data:
                 data["time"] = datetime.utcnow().time().strftime("%H:%M:%S")
 
+            data["timestamp"] = datetime.utcnow().isoformat()
+
             # Enrich with outdoor weather from OpenWeatherMap
             try:
                 city = data["city"] if "city" in data and data["city"] else "Lausanne"
@@ -199,7 +201,7 @@ def get_latest_values():
     try:
         q = """
         SELECT * FROM `assignment1-452312.Lab4_IoT_datasets.weather-records`
-        ORDER BY timestamp DESC
+        ORDER BY date DESC
         LIMIT 1
         """
         df = client.query(q).to_dataframe()
@@ -220,7 +222,7 @@ def get_all_data():
     if not body or body.get("passwd") != HASH_PASSWD:
         return {"status": "failed", "message": "Authentication error"}, 403
     try:
-        query = "SELECT * FROM `assignment1-452312.Lab4_IoT_datasets.weather-records` ORDER BY timestamp DESC"
+        query = "SELECT * FROM `assignment1-452312.Lab4_IoT_datasets.weather-records` ORDER BY date DESC"
         df = client.query(query).to_dataframe()
         return {"status": "success", "data": df.to_dict(orient="records")}
     except Exception as e:
