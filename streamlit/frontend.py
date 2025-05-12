@@ -24,7 +24,7 @@ st.title("🌡️ IoT Weather Dashboard")
 
 if st.button("🔄 Refresh Data"):
     st.session_state.current_data = get_all_data()
-    st.experimental_rerun()
+    st.rerun()
 
 tab1, tab2, tab3, tab4 = st.tabs(["📍 Current State", "📈 History", "🌤️ Forecast", "🏠 Control"])
 
