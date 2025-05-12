@@ -68,20 +68,46 @@ while True:
 
     # --- Tab 3: Weather Forecast ---
     with tab3:
-        st.header("Weather Forecast")
+        st.header("🌤️ Weather Forecast")
         city = st.text_input("Enter your city", value="Lausanne")
+
         if st.button("Get Forecast"):
             res = requests.post(f"{API_BASE_URL}/get-weather-forecast", json={"passwd": PASSWD, "city": city})
-            forecast = res.json().get("forecast", {})
-            if forecast:
-                forecasts = forecast.get("list", [])[:8]  # next 24 hours (3h interval)
-                for entry in forecasts:
-                    dt = entry["dt_txt"]
-                    temp = entry["main"]["temp"]
-                    desc = entry["weather"][0]["description"]
-                    st.write(f"**{dt}** — {temp}°C — {desc}")
+
+            if res.status_code == 200:
+                forecast_data = res.json().get("forecast", {})
+                if forecast_data:
+                    forecasts = forecast_data.get("list", [])
+                    daily_summary = {}
+
+                    for entry in forecasts:
+                        date = entry["dt_txt"].split(" ")[0]
+                        temp = entry["main"]["temp"]
+                        desc = entry["weather"][0]["description"]
+                        icon = entry["weather"][0]["icon"]
+
+                        if date not in daily_summary:
+                            daily_summary[date] = {
+                                "temps": [],
+                                "desc": desc,
+                                "icon": icon
+                            }
+                        daily_summary[date]["temps"].append(temp)
+
+                    for date, info in list(daily_summary.items())[:5]:  # Limit to 5 days
+                        min_temp = min(info["temps"])
+                        max_temp = max(info["temps"])
+                        icon_url = f"http://openweathermap.org/img/wn/{info['icon']}@2x.png"
+                        st.markdown(f"### 📅 {date}")
+                        st.image(icon_url, width=80)
+                        st.write(f"**{info['desc'].capitalize()}**")
+                        st.metric("🌡️ Température max", f"{max_temp:.1f}°C")
+                        st.metric("🌡️ Température min", f"{min_temp:.1f}°C")
+                        st.markdown("---")
+                else:
+                    st.warning("No forecast data found.")
             else:
-                st.error("No forecast found")
+                st.error("Failed to retrieve forecast.")
 
     # --- Tab 4: Control ---
     with tab4:
