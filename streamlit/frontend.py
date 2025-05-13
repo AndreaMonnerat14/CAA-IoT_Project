@@ -128,7 +128,7 @@ with tab3:
 
                 for col, (date, info) in zip(cols, days):
                     with col:
-                        day_name = datetime.strptime(date, "%Y-%m-%d").strftime("%A")
+                        day_name = datetime.datetime.strptime(date, "%Y-%m-%d").strftime("%A")
                         st.markdown(f"**📅 {day_name}**")
                         #st.markdown(f"**📅 {date}**")
                         icon_url = f"http://openweathermap.org/img/wn/{info['icon']}@2x.png"
