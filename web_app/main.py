@@ -352,7 +352,7 @@ def generate_tts():
 
 
 @app.route('/generate-tts-bis', methods=['POST'])
-def generate_tts():
+def generate_tts_bis():
     try:
         body = request.get_json(force=True)
 
