@@ -9,6 +9,8 @@ import hashlib
 import ubinascii
 import wifiCfg
 import ntptime
+import requests
+import ujson
 
 """
 networks = [
@@ -49,11 +51,18 @@ passwd = ubinascii.hexlify(hash_bytes).decode()
 # Time
 ntp = ntptime.client(host='cn.pool.ntp.org', timezone=2)
 
+#location
+ip_info = requests.get("http://ip-api.com/json").json()
+lat = ip_info.get("lat")
+lon = ip_info.get("lon")
+
+#Flask URL
+flask_url = "https://caa-iot-project-1008838592938.europe-west6.run.app"
 
 # TTS function
 def get_tts(text):
-    url = "https://caa-iot-project-1008838592938.europe-west6.run.app/generate-tts"
-    response = urequests.post(url, json={"text": text, "passwd": passwd})
+    url = f"{flask_url}/generate-tts"
+    response = urequests.post(url, json=text)
     if response.status_code == 200:
         with open('tts.wav', 'wb') as f:
             f.write(response.content)
@@ -63,6 +72,50 @@ def get_tts(text):
         print("TTS request failed:", response.text)
         return False
 
+def get_latest_values():
+    headers = {'Content-Type': 'application/json'}
+    payload = {"passwd": passwd}
+
+    try:
+        response = urequests.post(f"{flask_url}/get-latest-values", headers=headers, json=payload)
+        if response.status_code == 200:
+            result = response.json()
+            if result["status"] == "success":
+                data = result["data"]
+
+                # Initialize dictionaries to hold results
+                avg_temp_by_day = {}
+                avg_humidity_by_day = {}
+
+                for entry in data:
+                    day = entry["date"]
+                    avg_temp_by_day[day] = float(entry["avg_indoor_temp"])
+                    avg_humidity_by_day[day] = float(entry["avg_indoor_humidity"])
+
+                response.close()
+                return avg_temp_by_day, avg_humidity_by_day
+            else:
+                print("Error from server:", result["message"])
+        else:
+            print("HTTP Error:", response.status_code)
+        response.close()
+    except Exception as e:
+        print("Request failed:", e)
+
+    return {}, {}  # Return empty dicts if something went wrong
+
+#tts_alerts
+tts_alerts = { "passwd": passwd,
+    "alerts": {"HumLow" : False,
+"HumHigh" : False,
+"TempLow": False,
+"TempHigh": False,
+"Air": False,
+"Storm": False,
+"Rain": False,
+"Sun": False,
+"Warm": False,
+"Cold": False}}
 
 # Screen and sensors
 screen = M5Screen()
@@ -72,20 +125,26 @@ env3_0 = unit.get(unit.ENV3, unit.PORTA)
 air_0 = unit.get(unit.TVOC, unit.PORTC)
 wait(1)
 
+#retrieving latest data (3 last recorded days averages)
+temp_hist_data, humidity_hist_data = get_latest_values()
+
 # UI fixed labels
 Temp = M5Label('Humidity:', x=19, y=101, color=0x000, font=FONT_MONT_18)
 Humidity = M5Label('Temp:', x=19, y=142, color=0x000, font=FONT_MONT_18)
 TVOC = M5Label('TVOC:', x=19, y=183, color=0x000, font=FONT_MONT_18)
 ECO2 = M5Label('ECO2', x=19, y=220, color=0x000, font=FONT_MONT_18)
-
-# Ui variable labels
+In = M5Label('In', x=80, y=30, color=0x000, font=FONT_MONT_22)
+Out = M5Label('Out', x=234, y=30, color=0x000, font=FONT_MONT_22)
 Time = M5Label('...', x=90, y=15, color=0x000, font=FONT_MONT_18)
-labelHumIn = M5Label('Temp:', x=19, y=142, color=0x000, font=FONT_MONT_18)
-labelTempIn = M5Label('...', x=163, y=142, color=0x000, font=FONT_MONT_18)
-label1 = M5Label('...', x=158, y=183, color=0x000, font=FONT_MONT_18)
-label6 = M5Label('In', x=158, y=103, color=0x000, font=FONT_MONT_18)
-label7 = M5Label('Out', x=234, y=103, color=0x000, font=FONT_MONT_18)
-M5Label('TVOC:', x=19, y=220, color=0x000, font=FONT_MONT_18)
+
+#-- Ui variable labels
+#In
+labelHumIn = M5Label('...', x=19, y=60, color=0x000, font=FONT_MONT_18)
+labelTempIn = M5Label('...', x=100, y=60, color=0x000, font=FONT_MONT_18)
+labelTVOC = M5Label('...', x=19, y=100, color=0x000, font=FONT_MONT_18)
+labelECO2 = M5Label('...', x=100, y=100, color=0x000, font=FONT_MONT_18)
+#Out
+labelHumIn = M5Label('...', x=200, y=60, color=0x000, font=FONT_MONT_18)
 M5Label('eCO2:', x=19, y=260, color=0x000, font=FONT_MONT_18)
 label_tvoc = M5Label('...', x=100, y=220, color=0x000, font=FONT_MONT_18)
 label_eco2 = M5Label('...', x=100, y=260, color=0x000, font=FONT_MONT_18)
@@ -166,5 +225,37 @@ def get_tts(text):
     else:
         print("TTS request failed:", response.text)
         return False
-
 """
+t = 0
+tts_timer = 3600
+while True:
+    #Time
+    Time.set_text(ntp.formatDatetime('-', ':'))
+
+    #outdoor update
+    if tts_timer % 1800 == 0:
+        outdoor_weather = urequests.post(str(flask_url + '/get_outdoor_weather'), json=data)
+
+    if t % 300:
+        data = {
+            "passwd": passwd,
+            "values": {
+                "indoor_temp": temp,
+                "indoor_humidity": hum,
+                "tvoc": tvoc,
+                "eco2": eco2,
+                "outdoor_weather": outdoor_weather,
+                "lat": lat,
+                "lon": lon
+            }
+        }
+        res = urequests.post(endpoint, json=data)
+        print("POST status:", res.status_code)
+        res.close()
+
+    #movement and tts
+    if get_movement_sensor & tts_timer >3600:
+        if get_tts(tts_alerts):
+            speaker.playWAV("tts.wav", volume=6)
+
+    t+=1

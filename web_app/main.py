@@ -39,6 +39,12 @@ def get_local_datetime_info(timezone_str="Europe/Zurich"):
         "timestamp": now.isoformat()
     }
 
+def get_city_nominatim(lat, lon):
+    url = f"https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat={lat}&lon={lon}"
+    headers = {"User-Agent": "MyIoTApp/1.0"}
+    resp = requests.get(url, headers=headers).json()
+    return resp.get("address", {}).get("city")
+
 #%%
 @app.route('/send-to-bigquery', methods=['GET', 'POST'])
 def send_to_bigquery():
@@ -66,10 +72,12 @@ def send_to_bigquery():
             data["time"] = datetime_info["time"]
             data["timestamp"] = datetime_info["timestamp"] #using correct timestamp
 
+            #Add location from lat and lon
+            data["city"] = get_city_nominatim(data["lat"], data["lon"])
+
             # Enrich with outdoor weather from OpenWeatherMap
             try:
                 city = data["city"] if "city" in data and data["city"] else "Lausanne"
-                data.pop("city", None)
                 url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&units=metric&appid={OPENWEATHER_API_KEY}&lang=fr"
                 response = requests.get(url)
                 weather_json = response.json()
@@ -208,23 +216,38 @@ def get_latest_values():
         if body["passwd"] != HASH_PASSWD:
             return {"status": "failed", "message": "Incorrect password"}, 403
 
-    try:
-        q = """
-        SELECT * FROM `assignment1-452312.Lab4_IoT_datasets.weather-records`
-        ORDER BY date DESC
-        LIMIT 1
-        """
-        df = client.query(q).to_dataframe()
+        try:
+            # Query to get per-day averages of indoor values for last 3 days with data
+            q = """
+            WITH last_dates AS (
+                SELECT DISTINCT date
+                FROM `assignment1-452312.Lab4_IoT_datasets.weather-records`
+                WHERE date < CURRENT_DATE()
+                ORDER BY date DESC
+                LIMIT 3
+            )
+            SELECT
+                date,
+                ROUND(AVG(indoor_temp), 2) AS avg_indoor_temp,
+                ROUND(AVG(indoor_humidity), 2) AS avg_indoor_humidity
+            FROM `assignment1-452312.Lab4_IoT_datasets.weather-records`
+            WHERE date IN (SELECT date FROM last_dates)
+            GROUP BY date
+            ORDER BY date DESC
+            """
 
-        if df.empty:
-            return {"status": "success", "message": "No data yet", "data": {}}
+            df = client.query(q).to_dataframe()
 
-        df = df.astype(str)
-        latest = df.iloc[0].to_dict()
-        return {"status": "success", "data": latest}
+            if df.empty:
+                return {"status": "success", "message": "No data yet", "data": {}}
 
-    except Exception as e:
-        return {"status": "failed", "message": str(e)}, 500
+            data = df.to_dict(orient="records")
+            return {"status": "success", "data": data}
+
+        except Exception as e:
+            return {"status": "failed", "message": str(e)}, 500
+
+    return {"status": "failed", "message": "Method not allowed"}, 405
 
 
 @app.route('/get-all-data', methods=['POST'])
@@ -295,6 +318,59 @@ def generate_tts():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+@app.route('/generate-tts-bis', methods=['POST'])
+def generate_tts():
+    try:
+        body = request.get_json(force=True)
+
+        if not body or body.get("passwd") != HASH_PASSWD:
+            return {"status": "failed", "message": "Authentication error"}, 403
+
+        body = body.get("alerts")
+        possible_alerts = {"HumLow" : "Humidity rate is quite low, drink water and do sport!",
+                           "HumHigh" : "Humidity rate is too high, open a window!",
+                           "TempLow": "Temperature is too low, get a jacket!",
+                           "TempHigh": "Temperature is too high, get naked.",
+                           "Air": "Air quality is rather bad, open a window!",
+                           "Storm": "A storm is coming, take a blanket and make tea.",
+                           "Rain": "It's raining, take an umbrella if you're going out!",
+                           "Sun": "You live in a beautiful sunny world, take sunglasses and have a cocktail!",
+                           "Warm": "It's quite warm outside, don't plan skying.",
+                           "Cold": "It's cold outside, wear warm clothes."}
+
+        text = ""
+        for case in possible_alerts.keys():
+            if body.get(case):
+                text += f"{possible_alerts[case]} "
+
+        if not text.strip():
+            return False
+
+        # Set up the client
+        client = texttospeech.TextToSpeechClient()
+
+        input_text = texttospeech.SynthesisInput(text=text)
+        voice = texttospeech.VoiceSelectionParams(
+            language_code="en-US", ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+        )
+        audio_config = texttospeech.AudioConfig(
+            audio_encoding=texttospeech.AudioEncoding.LINEAR16
+        )
+
+        # Perform the TTS request
+        response = client.synthesize_speech(
+            input=input_text, voice=voice, audio_config=audio_config
+        )
+
+        # Save to a temporary MP3 file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as out:
+            out.write(response.audio_content)
+            out.flush()
+            return send_file(out.name, mimetype='audio/wav')
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)

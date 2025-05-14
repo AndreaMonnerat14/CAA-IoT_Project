@@ -41,11 +41,19 @@ payload = {
     "passwd": PASSWD,
     "text": "Hi Andrea! Comment tu te port espace the fasho?"
 }
-
+"""
 response = requests.post(f'{url}/generate-tts', json=payload)
 if response.status_code == 200:
     with open("tts_output.wav", "wb") as f:
         f.write(response.content)
     print("✅ TTS audio saved as 'tts_output.mp3'")
 else:
-    print(f"❌ Error {response.status_code}: {response.text}")
+    print(f"❌ Error {response.status_code}: {response.text}")"""
+
+def get_city_nominatim(lat, lon):
+    url = f"https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat={lat}&lon={lon}"
+    headers = {"User-Agent": "MyIoTApp/1.0"}
+    resp = requests.get(url, headers=headers).json()
+    return resp.get("address", {}).get("city")
+
+print(get_city_nominatim(46.52, 6.63))
