@@ -312,7 +312,7 @@ def get_weather_forecast():
     except Exception as e:
         return {"status": "failed", "message": str(e)}, 500
 
-@app.route('/generate-tts', methods=['POST'])
+@app.route('/generate-texttospeech', methods=['POST'])
 def generate_tts():
     try:
         body = request.get_json(force=True)

@@ -57,3 +57,19 @@ def get_city_nominatim(lat, lon):
     return resp.get("address", {}).get("city")
 
 print(get_city_nominatim(46.52, 6.63))
+
+
+data = { "passwd": PASSWD,
+    "alerts": {"HumLow" : True,
+       "HumHigh" : True,
+       "TempLow": True,
+       "TempHigh": True,
+       "Air": True,
+       "Storm": True,
+       "Rain": True,
+       "Sun": True,
+       "Warm": True,
+       "Cold": True}
+}
+res = requests.post(f"{url}/generate-tts-bis", json=data)
+print(res.status_code, res.text)
