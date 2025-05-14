@@ -4,3 +4,4 @@ db-dtypes
 Flask
 requests
 dotenv
+openai

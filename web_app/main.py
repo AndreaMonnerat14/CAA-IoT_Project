@@ -11,12 +11,16 @@ from datetime import datetime
 import tempfile
 import pandas as pd
 import pytz
+import openai
 
 load_dotenv()
+
 # You only need to uncomment the line below if you want to run your flask app locally.
 OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY")
 GOOGLE_APPLICATION_CREDENTIALS = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
 HASH_PASSWD = os.environ.get("HASH_PASSWD")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+
 # Initialize BigQuery client
 try:
     client = bigquery.Client(project="assignment1-452312", location="europe-west6")
@@ -44,6 +48,34 @@ def get_city_nominatim(lat, lon):
     headers = {"User-Agent": "MyIoTApp/1.0"}
     resp = requests.get(url, headers=headers).json()
     return resp.get("address", {}).get("city")
+
+def generate_llm_alert(tag, base_text):
+    prompt = (
+        f"You are a friendly and funny assistant generating human-like weather and environment alerts for a m5stack weather station.\n"
+        f"Here is an internal alert message: \"{base_text}\"\n"
+        f"Please rewrite it to sound more natural, friendly, and possibly a bit humorous. Keep it short.\n"
+        f"Don't mention you're an assistant or that this is an alert.\n"
+        f"Example alerts include:\n"
+        f"- 'Humidity rate is quite low, drink water and do sport!'\n"
+        f"- 'Temperature is too high, get naked.'\n"
+        f"- 'A storm is coming, take a blanket and make tea.'\n"
+        f"Now rewrite the alert:\n"
+    )
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You generate creative and friendly environmental alert messages."},
+                {"role": "user", "content": prompt}
+            ],
+           #this parameter adds creativity to the model, if you increase it, you give the llm more freedom to generate a text
+            temperature=0.95
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"[OpenAI error] {tag}: {e}")
+        return base_text
 
 #%%
 @app.route('/send-to-bigquery', methods=['GET', 'POST'])
@@ -340,12 +372,13 @@ def generate_tts():
                            "Cold": "It's cold outside, wear warm clothes."}
 
         text = ""
-        for case in possible_alerts.keys():
-            if body.get(case):
-                text += f"{possible_alerts[case]} "
+        for tag, base_text in possible_alerts.items():
+            if body.get(tag):
+                variation = generate_llm_alert(tag, base_text)
+                text += f"{variation} "
 
         if not text.strip():
-            return False
+            return jsonify({"error": "No alert triggered"}), 200
 
         # Set up the client
         client = texttospeech.TextToSpeechClient()
