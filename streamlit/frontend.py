@@ -68,9 +68,9 @@ with tab2:
 with tab3:
     st.header("🌤️ Weather Forecast")
     city_try = (
-        st.session_state.current_data.iloc[0]["city"]
-        if st.session_state.current_data.iloc[0]["city"] != "?"
-        else "Lausanne"
+        df.iloc[0]["city"]
+        if df.iloc[0]["city"] != "?"
+        else f"Unknown location - Latitude : {df.iloc[0]['lat']} , Longitude : {df.iloc[0]['lon']}"
     )
     city = st.text_input("Enter your city", value=city_try)
 
