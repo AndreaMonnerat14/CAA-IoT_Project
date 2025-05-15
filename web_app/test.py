@@ -61,15 +61,20 @@ print(get_city_nominatim(46.52, 6.63))
 
 data = { "passwd": PASSWD,
     "alerts": {"HumLow" : True,
-       "HumHigh" : True,
+       "HumHigh" : False,
        "TempLow": True,
-       "TempHigh": True,
+       "TempHigh": False,
        "Air": True,
-       "Storm": True,
+       "Storm": False,
        "Rain": True,
-       "Sun": True,
-       "Warm": True,
+       "Sun": False,
+       "Warm": False,
        "Cold": True}
 }
-res = requests.post(f"{url}/generate-tts-bis", json=data)
-print(res.status_code, res.text)
+response = requests.post(f"{url}/generate-tts-bis", json=data)
+if response.status_code == 200:
+    with open("tts_output.wav", "wb") as f:
+        f.write(response.content)
+    print("✅ TTS audio saved as 'tts_output.mp3'")
+else:
+    print(f"❌ Error {response.status_code}: {response.text}")
