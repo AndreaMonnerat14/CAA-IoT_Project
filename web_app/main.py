@@ -12,6 +12,7 @@ import tempfile
 import pandas as pd
 import pytz
 import openai
+from zoneinfo import ZoneInfo
 
 load_dotenv()
 

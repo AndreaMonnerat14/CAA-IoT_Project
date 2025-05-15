@@ -121,21 +121,16 @@ tts_alerts = { "passwd": passwd,
 screen = M5Screen()
 screen.clean_screen()
 screen.set_screen_bg_color(0xd5d5d5)
-env3_0 = unit.get(unit.ENV3, unit.PORTA)
-air_0 = unit.get(unit.TVOC, unit.PORTC)
-wait(1)
 
-#retrieving latest data (3 last recorded days averages)
-temp_hist_data, humidity_hist_data = get_latest_values()
 
 # UI fixed labels
-Temp = M5Label('Humidity:', x=19, y=101, color=0x000, font=FONT_MONT_18)
-Humidity = M5Label('Temp:', x=19, y=142, color=0x000, font=FONT_MONT_18)
-TVOC = M5Label('TVOC:', x=19, y=183, color=0x000, font=FONT_MONT_18)
-ECO2 = M5Label('ECO2', x=19, y=220, color=0x000, font=FONT_MONT_18)
-In = M5Label('In', x=80, y=30, color=0x000, font=FONT_MONT_22)
-Out = M5Label('Out', x=234, y=30, color=0x000, font=FONT_MONT_22)
-Time = M5Label('...', x=90, y=15, color=0x000, font=FONT_MONT_18)
+Temp = M5Label('Humidity:', x=19, y=101, color=0xfff, font=FONT_MONT_18)
+Humidity = M5Label('Temp:', x=19, y=142, color=0xfff, font=FONT_MONT_18)
+TVOC = M5Label('TVOC:', x=19, y=183, color=0xfff, font=FONT_MONT_18)
+ECO2 = M5Label('ECO2', x=19, y=220, color=0xfff, font=FONT_MONT_18)
+In = M5Label('In', x=80, y=30, color=0xfff, font=FONT_MONT_22)
+Out = M5Label('Out', x=234, y=30, color=0xfff, font=FONT_MONT_22)
+Time = M5Label('...', x=90, y=15, color=0xfff, font=FONT_MONT_18)
 
 #-- Ui variable labels
 #In
