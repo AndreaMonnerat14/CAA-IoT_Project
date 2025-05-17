@@ -260,7 +260,7 @@ def get_latest_values():
                 LIMIT 3
             )
             SELECT
-                date,
+                FORMAT_DATE('%d.%m', date) AS date,
                 ROUND(AVG(indoor_temp), 2) AS avg_indoor_temp,
                 ROUND(AVG(indoor_humidity), 2) AS avg_indoor_humidity
             FROM `assignment1-452312.Lab4_IoT_datasets.weather-records`
