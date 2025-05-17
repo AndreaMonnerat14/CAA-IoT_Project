@@ -362,7 +362,7 @@ def get_weather_forecast_3():
 
         today = datetime.date.today()
 
-        sorted_dates = sorted(d for d in days.keys() if datetime.datetime.strptime(d, "%Y-%m-%d").date() > today)
+        sorted_dates = sorted(d for d in days.keys() if datetime.strptime(d, "%Y-%m-%d").date() > today)
         next_dates = sorted_dates[:3]
 
         result = {}

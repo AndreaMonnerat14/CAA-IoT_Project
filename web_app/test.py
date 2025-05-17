@@ -83,6 +83,6 @@ data = {"passwd": PASSWD,
         "lat": 46.52,
         "lon": 6.63}
 
-response = requests.post(str(url + '/get-weather-forecast'), json = data)
+response = requests.post(str(url + '/get-weather-forecast-3'), json = data)
 print("Status Code:", response.status_code)
 print("Response JSON:", response.json())
