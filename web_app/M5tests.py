@@ -235,34 +235,66 @@ state = False
 
 
 def get_forecast():
+    global lat, lon
     headers = {'Content-Type': 'application/json'}
     payload = {"passwd": passwd, "lat": lat, "lon": lon}
 
     try:
-        response = urequests.post(str(flask_url + "/get-weather-forecast"), headers=headers, json=payload)
+        response = urequests.post(str(flask_url + "/get-weather-forecast-3"), headers=headers, json=payload)
         if response.status_code == 200:
             result = response.json()
             if result["status"] == "success":
-                return result["forecast"]
+                return result["forecast_summary"]
             else:
-                print("Server error:", result["message"])
+                error_label.set_text("Server error:" + result["message"])
         else:
-            print("HTTP error:", response.status_code)
+            error_label.set_text("HTTP error:" + str(response.status_code))
     except Exception as e:
-        print("Forecast fetch failed:", e)
+        error_label.set_text("Forecast fetch failed:")
     return {}
 
 
 forecast = get_forecast()
 
-main_labels = [temp_label, hum_label, tvoc_label, eco2_label, clock_label, out_temp_label, out_hum_label]
+# Track all label groups for cleanup
+forecast_labels = []
 history_labels = []
+main_labels = [temp_label, hum_label, tvoc_label, eco2_label, clock_label, out_temp_label, out_hum_label]
+state = "main"  # can be 'main', 'hist', or 'forecast'
+
+# ----------- HIST BUTTON -----------
+btn = lv.btn(scr)
+btn.set_size(100, 50)
+btn.align(scr, lv.ALIGN.IN_BOTTOM_RIGHT, -10, -10)
+
+style_hist = lv.style_t()
+style_hist.init()
+style_hist.set_bg_color(lv.STATE.DEFAULT, lv.color_hex(0x00AFFF))
+style_hist.set_border_color(lv.STATE.DEFAULT, lv.color_hex(0x00AFFF))
+
+style_back = lv.style_t()
+style_back.init()
+style_back.set_bg_color(lv.STATE.DEFAULT, lv.color_hex(0xFFFFFF))
+style_back.set_border_color(lv.STATE.DEFAULT, lv.color_hex(0xFFFFFF))
+
+label = lv.label(btn)
+label.set_text("Hist")
+label.align(btn, lv.ALIGN.CENTER, 0, 0)
+
+btn.add_style(btn.PART.MAIN, style_hist)
+
+# ----------- FORECAST BUTTON -----------
+btn_forecast = lv.btn(scr)
+btn_forecast.set_size(100, 50)
+btn_forecast.align(scr, lv.ALIGN.IN_BOTTOM_LEFT, 10, -10)
+
+label_forecast = lv.label(btn_forecast)
+label_forecast.set_text("Forecast")
+label_forecast.align(btn_forecast, lv.ALIGN.CENTER, 0, 0)
 
 
 def show_history_data(temp_data, hum_data):
-    col_x_offsets = [-90, 0, 90]  # X offsets for 3 columns
-
-    # Clear any existing labels
+    col_x_offsets = [-90, 0, 90]
     global history_labels
     for lbl in history_labels:
         lbl.delete()
@@ -272,7 +304,6 @@ def show_history_data(temp_data, hum_data):
     for i, day in enumerate(days):
         x = col_x_offsets[i]
 
-        # Date label
         lbl_date = lv.label(scr)
         lbl_date.set_text(day)
         lbl_date.set_style_local_text_color(lbl_date.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xFFFFFF))
@@ -280,109 +311,127 @@ def show_history_data(temp_data, hum_data):
         lbl_date.align(scr, lv.ALIGN.CENTER, x, -40)
         history_labels.append(lbl_date)
 
-        # Avg Temp label
         lbl_temp = lv.label(scr)
         lbl_temp.set_text(str(temp_data[day]) + "°C")
-        lbl_temp.set_style_local_text_color(lbl_temp.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xFFA500))  # Orange
+        lbl_temp.set_style_local_text_color(lbl_temp.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xFFA500))
         lbl_temp.set_style_local_text_font(lbl_temp.PART.MAIN, lv.STATE.DEFAULT, lv.font_montserrat_22)
         lbl_temp.align(scr, lv.ALIGN.CENTER, x, -10)
         history_labels.append(lbl_temp)
 
-        # Avg Hum label
         lbl_hum = lv.label(scr)
         lbl_hum.set_text(str(hum_data[day]) + "%")
-        lbl_hum.set_style_local_text_color(lbl_hum.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0x00FF00))  # Green
+        lbl_hum.set_style_local_text_color(lbl_hum.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0x00FF00))
         lbl_hum.set_style_local_text_font(lbl_hum.PART.MAIN, lv.STATE.DEFAULT, lv.font_montserrat_22)
         lbl_hum.align(scr, lv.ALIGN.CENTER, x, 20)
         history_labels.append(lbl_hum)
+
     hist_title_lbl = lv.label(scr)
     hist_title_lbl.set_text("Last recorded days' averages")
-    hist_title_lbl.set_style_local_text_color(lbl_date.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xFFFFFF))
-    hist_title_lbl.set_style_local_text_font(lbl_date.PART.MAIN, lv.STATE.DEFAULT, lv.font_montserrat_14)
+    hist_title_lbl.set_style_local_text_color(hist_title_lbl.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xFFFFFF))
+    hist_title_lbl.set_style_local_text_font(hist_title_lbl.PART.MAIN, lv.STATE.DEFAULT, lv.font_montserrat_14)
     hist_title_lbl.align(scr, lv.ALIGN.CENTER, 0, -70)
     history_labels.append(hist_title_lbl)
 
 
 def display_forecast(forecast):
-    forecast_labels = []
+    global forecast_labels
     try:
-        days = {}
-        for entry in forecast["list"]:
-            dt_txt = entry["dt_txt"]
-            date = dt_txt.split()[0]
-            if date not in days:
-                days[date] = []
-            days[date].append(entry)
+        # Clear old labels
+        for label in forecast_labels:
+            label.delete()
+        forecast_labels = []
 
-        selected_days = list(days.keys())[:3]
+        # Check if forecast_summary is present
+        summary = forecast
+        if not summary:
+            error_label.set_text("No forecast data")
+            return
 
-        for i, day in enumerate(selected_days):
-            entries = days[day]
-            temps = [e["main"]["temp"] for e in entries]
-            conditions = [e["weather"][0]["description"] for e in entries]
+        # We'll show up to 3 days
+        dates = sorted(summary.keys())[:3]
 
-            avg_temp = round(sum(temps) / len(temps), 1)
-            common_weather = max(set(conditions), key=conditions.count)
+        for i, date in enumerate(dates):
+            day_info = summary[date]
+            min_temp = day_info.get("min", "?")
+            max_temp = day_info.get("max", "?")
+            desc = day_info.get("description", "No data")
+
+            # Format date as "DD.MM"
+            day_str = date[8:10] + "." + date[5:7]
+
+            text = day_str + ": " + str(min_temp) + "°C - " + str(max_temp) + "°C  " + desc
 
             label = lv.label(scr)
             label.set_style_local_text_color(label.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0x00FFAA))
             label.set_style_local_text_font(label.PART.MAIN, lv.STATE.DEFAULT, lv.font_montserrat_20)
-            label.set_text(str(day[8:]) + "." + str(day[5:7]) + ":" + str(avg_temp) + "°C  " + str(common_weather))
-            label.align(scr, lv.ALIGN.IN_TOP_LEFT, 10 + i * 100, 180)
+            label.set_text(text)
+            label.align(scr, lv.ALIGN.IN_TOP_LEFT, 10, 180 + i * 30)
+
             forecast_labels.append(label)
+
+        error_label.set_text("Forecast displayed")
+
     except Exception as e:
-        print("Display forecast error:", e)
-    return forecast_labels
+        error_label.set_text("Error displaying forecast")
+        # You can also add some way to show the error if you want:
+        # e.g. a debug label or console print if available
 
 
-# Button toggle action
+# ---------- HIST BUTTON ----------
 def action(obj, event):
-    global state, history_labels, main_labels
+    global state
     if event == lv.EVENT.CLICKED:
-        if not state:
-            # Switch to historical view
+        if state == "main":
+            # switch to history
             for lbl in main_labels:
                 lbl.set_hidden(True)
-            btn.add_style(btn.PART.MAIN, style_back)
+            btn.set_hidden(False)
+            btn_forecast.set_hidden(True)
             label.set_text("Back")
+            btn.add_style(btn.PART.MAIN, style_back)
             show_history_data(temp_hist_data, humidity_hist_data)
-        else:
-            # Back to main view
+            state = "hist"
+
+        elif state == "hist":
+            # switch back to main
             for lbl in main_labels:
                 lbl.set_hidden(False)
             for lbl in history_labels:
                 lbl.delete()
             history_labels.clear()
-            btn.add_style(btn.PART.MAIN, style_hist)
             label.set_text("Hist")
-        state = not state
+            btn.add_style(btn.PART.MAIN, style_hist)
+            btn_forecast.set_hidden(False)
+            state = "main"
 
 
 btn.set_event_cb(action)
 
-btn_forecast = lv.btn(scr)
-btn_forecast.set_size(100, 50)
-btn_forecast.align(scr, lv.ALIGN.IN_BOTTOM_LEFT, 10, -10)
-label_forecast = lv.label(btn_forecast)
-label_forecast.set_text("Forecast")
-label_forecast.align(btn_forecast, lv.ALIGN.CENTER, 0, 0)
 
-forecast_state = False
-forecast_labels = []
-
-
+# ---------- FORECAST BUTTON ----------
 def forecast_action(obj, event):
-    global forecast_state, forecast_labels, forecast
+    global forecast_state, state, forecast
     if event == lv.EVENT.CLICKED:
-        if not forecast_state:
-            forecast_labels = display_forecast(forecast)
+        if state == "main":
+            # switch to forecast
+            for lbl in main_labels:
+                lbl.set_hidden(True)
+            btn_forecast.set_hidden(False)
+            btn.set_hidden(True)
             label_forecast.set_text("Back")
-        else:
-            for label in forecast_labels:
-                label.delete()
-            forecast_labels = []
+            display_forecast(forecast)
+            state = "forecast"
+
+        elif state == "forecast":
+            # return to main
+            for lbl in main_labels:
+                lbl.set_hidden(False)
+            for lbl in forecast_labels:
+                lbl.delete()
+            forecast_labels.clear()
             label_forecast.set_text("Forecast")
-        forecast_state = not forecast_state
+            btn.set_hidden(False)
+            state = "main"
 
 
 btn_forecast.set_event_cb(forecast_action)
@@ -444,8 +493,7 @@ def update_labels():
 """
 def update_flags():
   global tts_alerts, temp, hum, tvoc, eco2,outTemp, outHum, t
-  if temp
-"""
+  if temp"""
 
 # Main loop
 while True:

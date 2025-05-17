@@ -360,7 +360,7 @@ def get_weather_forecast_3():
             date_str = dt_txt.split()[0]
             days.setdefault(date_str, []).append(entry)
 
-        today = datetime.date.today()
+        today = datetime.today().date()
 
         sorted_dates = sorted(d for d in days.keys() if datetime.strptime(d, "%Y-%m-%d").date() > today)
         next_dates = sorted_dates[:3]
