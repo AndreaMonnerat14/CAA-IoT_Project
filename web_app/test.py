@@ -5,7 +5,7 @@ from flask import request
 url = 'https://caa-iot-project-1008838592938.europe-west6.run.app'
 
 PASSWD = "fce21e30cc9a328d8531fefc6f6dff8fb80fedced25b37fa6259ceec595e4057"
-
+"""
 data = {
     "passwd": "fce21e30cc9a328d8531fefc6f6dff8fb80fedced25b37fa6259ceec595e4057",
     "values": {
@@ -41,14 +41,14 @@ payload = {
     "passwd": PASSWD,
     "text": "Hi Andrea! Comment tu te port espace the fasho?"
 }
-"""
+
 response = requests.post(f'{url}/generate-tts', json=payload)
 if response.status_code == 200:
     with open("tts_output.wav", "wb") as f:
         f.write(response.content)
     print("✅ TTS audio saved as 'tts_output.mp3'")
 else:
-    print(f"❌ Error {response.status_code}: {response.text}")"""
+    print(f"❌ Error {response.status_code}: {response.text}")
 
 def get_city_nominatim(lat, lon):
     url = f"https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat={lat}&lon={lon}"
@@ -78,3 +78,11 @@ if response.status_code == 200:
     print("✅ TTS audio saved as 'tts_output.mp3'")
 else:
     print(f"❌ Error {response.status_code}: {response.text}")
+"""
+data = {"passwd": PASSWD,
+        "lat": 46.52,
+        "lon": 6.63}
+
+response = requests.post(str(url + '/get-weather-forecast'), json = data)
+print("Status Code:", response.status_code)
+print("Response JSON:", response.json())

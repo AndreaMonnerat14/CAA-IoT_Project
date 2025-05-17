@@ -289,7 +289,7 @@ def get_all_data():
     if not body or body.get("passwd") != HASH_PASSWD:
         return {"status": "failed", "message": "Authentication error"}, 403
     try:
-        query = "SELECT * FROM `assignment1-452312.Lab4_IoT_datasets.weather-records` ORDER BY date DESC"
+        query = "SELECT * FROM `assignment1-452312.Lab4_IoT_datasets.weather-records` ORDER BY timestamp DESC"
         df = client.query(query).to_dataframe()
         df = df.astype(str)
         return {"status": "success", "data": df.to_dict(orient="records")}
