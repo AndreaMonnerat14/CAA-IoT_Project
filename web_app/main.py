@@ -303,8 +303,14 @@ def get_weather_forecast():
         if not body or body.get("passwd") != HASH_PASSWD:
             return {"status": "failed", "message": "Authentication error"}, 403
 
-        city = body.get("city", "Lausanne")
-        url = f"https://api.openweathermap.org/data/2.5/forecast?q={city}&units=metric&appid={OPENWEATHER_API_KEY}&lang=en"
+        city = body.get("city", None)
+        if "lat" in body and "lon" in body:
+            url = f"https://api.openweathermap.org/data/2.5/forecast?lat={body.get("lat")}&lon={body.get("lon")}&units=metric&appid={OPENWEATHER_API_KEY}&lang=en"
+        elif city:
+            url = f"https://api.openweathermap.org/data/2.5/forecast?q={city}&units=metric&appid={OPENWEATHER_API_KEY}&lang=en"
+        else:
+            url = url = f"https://api.openweathermap.org/data/2.5/forecast?q=Lausanne&units=metric&appid={OPENWEATHER_API_KEY}&lang=en"
+
         response = requests.get(url)
         forecast = response.json()
 
