@@ -306,11 +306,11 @@ def get_weather_forecast():
 
         city = body.get("city", None)
         if "lat" in body and "lon" in body:
-            url = f"https://api.openweathermap.org/data/2.5/forecast?lat={body.get("lat")}&lon={body.get("lon")}&units=metric&appid={OPENWEATHER_API_KEY}&lang=en"
+            url = f"https://api.openweathermap.org/data/2.5/forecast?lat={body.get('lat')}&lon={body.get('lon')}&units=metric&appid={OPENWEATHER_API_KEY}&lang=en"
         elif city:
             url = f"https://api.openweathermap.org/data/2.5/forecast?q={city}&units=metric&appid={OPENWEATHER_API_KEY}&lang=en"
         else:
-            url = url = f"https://api.openweathermap.org/data/2.5/forecast?q=Lausanne&units=metric&appid={OPENWEATHER_API_KEY}&lang=en"
+            url = f"https://api.openweathermap.org/data/2.5/forecast?q=Lausanne&units=metric&appid={OPENWEATHER_API_KEY}&lang=en"
 
         response = requests.get(url)
         forecast = response.json()
@@ -319,6 +319,7 @@ def get_weather_forecast():
 
     except Exception as e:
         return {"status": "failed", "message": str(e)}, 500
+
 
 @app.route('/get-weather-forecast-3', methods=['POST'])
 def get_weather_forecast_3():
