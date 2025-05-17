@@ -13,6 +13,7 @@ import pandas as pd
 import pytz
 import openai
 from zoneinfo import ZoneInfo
+from collections import Counter
 
 load_dotenv()
 
@@ -318,6 +319,72 @@ def get_weather_forecast():
 
     except Exception as e:
         return {"status": "failed", "message": str(e)}, 500
+
+@app.route('/get-weather-forecast-3', methods=['POST'])
+def get_weather_forecast_3():
+    try:
+        body = request.get_json(force=True)
+        if not body or body.get("passwd") != HASH_PASSWD:
+            return jsonify({"status": "failed", "message": "Authentication error"}), 403
+
+        city = body.get("city", None)
+        lat = body.get("lat", None)
+        lon = body.get("lon", None)
+
+        if lat is not None and lon is not None:
+            url = "https://api.openweathermap.org/data/2.5/forecast?lat={}&lon={}&units=metric&appid={}&lang=en".format(
+                lat, lon, OPENWEATHER_API_KEY)
+        elif city:
+            url = "https://api.openweathermap.org/data/2.5/forecast?q={}&units=metric&appid={}&lang=en".format(
+                city, OPENWEATHER_API_KEY)
+        else:
+            # Default to Lausanne
+            url = "https://api.openweathermap.org/data/2.5/forecast?q=Lausanne&units=metric&appid={}&lang=en".format(
+                OPENWEATHER_API_KEY)
+
+        response = requests.get(url)
+        response.raise_for_status()
+        forecast = response.json()
+
+        if "list" not in forecast:
+            return jsonify({"status": "failed", "message": "Invalid forecast data"}), 500
+
+        # Process forecast to next 3 days summary (excluding today)
+        forecast_list = forecast["list"]
+        days = {}
+        for entry in forecast_list:
+            dt_txt = entry.get("dt_txt")
+            if not dt_txt:
+                continue
+            date_str = dt_txt.split()[0]
+            days.setdefault(date_str, []).append(entry)
+
+        today = datetime.date.today()
+
+        sorted_dates = sorted(d for d in days.keys() if datetime.datetime.strptime(d, "%Y-%m-%d").date() > today)
+        next_dates = sorted_dates[:3]
+
+        result = {}
+        for date in next_dates:
+            entries = days[date]
+            temps = [e["main"]["temp"] for e in entries if "main" in e and "temp" in e["main"]]
+            descriptions = [e["weather"][0]["description"] for e in entries if "weather" in e and len(e["weather"]) > 0]
+
+            min_temp = min(temps) if temps else None
+            max_temp = max(temps) if temps else None
+            common_desc = Counter(descriptions).most_common(1)[0][0] if descriptions else "No data"
+
+            result[date] = {
+                "min": min_temp,
+                "max": max_temp,
+                "description": common_desc
+            }
+
+        return jsonify({"status": "success", "forecast_summary": result})
+
+    except Exception as e:
+        return jsonify({"status": "failed", "message": str(e)}), 500
+
 
 @app.route('/generate-texttospeech', methods=['POST'])
 def generate_tts():
