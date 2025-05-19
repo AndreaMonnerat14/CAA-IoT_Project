@@ -6,9 +6,9 @@ import os
 import time
 import plotly.express as px
 import plotly.graph_objects as go
-from flask.cli import load_dotenv
 from streamlit_option_menu import option_menu
 from dotenv import load_dotenv
+
 
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'web_app', '.env')
 load_dotenv(dotenv_path=env_path)
