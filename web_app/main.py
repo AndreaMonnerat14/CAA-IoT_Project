@@ -463,7 +463,8 @@ def generate_tts_bis():
             language_code="en-US", ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
         )
         audio_config = texttospeech.AudioConfig(
-            audio_encoding=texttospeech.AudioEncoding.LINEAR16
+            audio_encoding=texttospeech.AudioEncoding.LINEAR16,
+            sample_rate_hertz=8000
         )
 
         # Perform the TTS request
