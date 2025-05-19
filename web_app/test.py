@@ -5,7 +5,7 @@ from flask import request
 url = 'https://caa-iot-project-1008838592938.europe-west6.run.app'
 
 PASSWD = "fce21e30cc9a328d8531fefc6f6dff8fb80fedced25b37fa6259ceec595e4057"
-"""
+
 data = {
     "passwd": "fce21e30cc9a328d8531fefc6f6dff8fb80fedced25b37fa6259ceec595e4057",
     "values": {
@@ -14,7 +14,7 @@ data = {
         "city": random.choices(["Villars-le-Comte", "Lausanne", "Rolle"])
     }
 }
-
+"""
 response = requests.post(f"{url}/send-to-bigquery", json=data)
 print(response.status_code, response.text)
 
@@ -57,7 +57,7 @@ def get_city_nominatim(lat, lon):
     return resp.get("address", {}).get("city")
 
 print(get_city_nominatim(46.52, 6.63))
-
+"""
 
 data = { "passwd": PASSWD,
     "alerts": {"HumLow" : True,
@@ -82,7 +82,12 @@ else:
 data = {"passwd": PASSWD,
         "lat": 46.52,
         "lon": 6.63}
-
 response = requests.post(str(url + '/get-weather-forecast-3'), json = data)
+print(response.status_code, response.text)
+
+
+
+response = requests.post(str(url + '/get-all-data'), json = data)
 print("Status Code:", response.status_code)
 print("Response JSON:", response.json())
+"""
