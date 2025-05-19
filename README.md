@@ -1,6 +1,12 @@
-# Indoor/Outdoor Weather Monitor with Cloud Dashboard
+# 👥 Contributors
 
-![Weather Monitor Banner](https://via.placeholder.com/800x200?text=Weather+Monitor+System)
+- [Andrea Monnerat](https://github.com/AndreaMonnerat14) - Backend structure, BigQuery integration, M5stack programming, README, Streamlit Dashboard enhancement, OpenAI API Integration
+- [Tanguy Schwitzguébel](https://github.com/Yeucht) - Backend, Streamlit dashboard, Text to speech, Data Visualization, M5stack programming, Testing and Optimizing the Backend
+
+## 🎬 Demo Video
+
+# Indoor/Outdoor Weather Monitor with Cloud Dashboard
+<img width="1679" alt="Capture d’écran 2025-05-19 à 11 01 37 PM" src="https://github.com/user-attachments/assets/9773bbbf-4366-4ca1-9d24-40e53f01d22d" />
 
 ## 📋 Project Overview
 
@@ -34,8 +40,6 @@ This project implements a comprehensive indoor/outdoor weather monitoring system
 - `/web_app`: Backend services and M5stack code
   - `main.py`: Core application logic and API endpoints
   - `m5stack_code.py`: Code deployed to the M5stack device
-  - `walkthrough.py`: Implementation helper functions
-  - `WalkThrough.ipynb`: Jupyter notebook with comprehensive implementation guide
   - `Dockerfile`: Container configuration for backend services
   - `requirements.txt`: Python dependencies for the backend
   - `test.py`: Testing utilities
@@ -169,13 +173,3 @@ The on-device interface displays:
                   └───────────────────┘
 ```
 
-## 👥 Contributors
-
-- [Andrea Monnerat](https://github.com/AndreaMonnerat14) - Backend, BigQuery integration, M5stack programming, README
-- [Tanguy Schwitzguébel] - Streamlit dashboard, frontend design, data visualization, M5stack testing and dashboard
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🎬 Demo Video
