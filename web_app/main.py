@@ -133,17 +133,14 @@ def send_to_bigquery():
             values = ""
             for k, v in data.items():
                 names += f"{k},"
-                # Ensure proper formatting for timestamp
-                if k == "timestamp":
-                    values += f"'{v}',"  # Enclose timestamp in quotes to treat as string
-                elif df.dtypes[k] == float:
+                if df.dtypes[k] == float:
                     values += f"{v},"
                 else:
                     values += f"'{v}',"
             names = names.rstrip(",")
             values = values.rstrip(",")
-
             insert_q = f"""INSERT INTO `assignment1-452312.Lab4_IoT_datasets.weather-records` ({names}) VALUES({values})"""
+
             # Execute insert
             client.query(insert_q)
 
