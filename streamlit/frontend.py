@@ -274,7 +274,11 @@ elif selected == "Historical Data":
         df = pd.DataFrame(data)
 
         # Ensure the 'timestamp' column is timezone-aware and sort the data by timestamp
-        df['timestamp'] = pd.to_datetime(df['timestamp'], utc=True)
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        if df['timestamp'].dt.tz is None:
+            df['timestamp'] = df['timestamp'].dt.tz_localize("UTC")
+        df['timestamp'] = df['timestamp'].dt.tz_convert("Europe/Zurich")
+
         df = df.sort_values("timestamp")
 
         # Convert relevant columns to numeric types, handling errors by coercing invalid values into NaN
