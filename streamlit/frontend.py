@@ -233,7 +233,7 @@ if selected == "Dashboard":
             if eco2 > 1200:
                 alerts.append({"type": "warning", "message": "CO₂ levels are elevated. Improve ventilation."})
             if float(latest.get('indoor_temp', 22)) > 26:
-                alerts.append({"type": "info", "message": "Room temperature is high. Consider turning on the AC."})
+                alerts.append({"type": "info", "message": "Room temperature is high. Consider opening the window or turning on the AC."})
             if float(latest.get('tvoc', 0)) > 200:
                 alerts.append({"type": "warning", "message": "VOC levels are elevated. Check for potential sources."})
             if 'rain' in latest.get('weather_desc', '').lower():
