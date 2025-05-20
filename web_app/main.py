@@ -139,7 +139,7 @@ def send_to_bigquery():
                     values += f"'{v}',"
             names = names.rstrip(",")
             values = values.rstrip(",")
-            insert_q = f"""INSERT INTO assignment1-452312.Lab4_IoT_datasets.weather-records ({names}) VALUES({values})"""
+            insert_q = f"""INSERT INTO `assignment1-452312.Lab4_IoT_datasets.weather-records` ({names}) VALUES({values})"""
 
             # Execute insert
             try:
