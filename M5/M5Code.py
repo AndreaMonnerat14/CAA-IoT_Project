@@ -12,6 +12,8 @@ import ntptime
 import lodepng  # handling png to binary (for lvgl)
 import gc  # handling memory
 
+# wifiCfg.doConnect("iot-unil", "4u6uch4hpY9pJ2f9")
+
 # LVGL init
 lv.init()
 scr = lv.obj()

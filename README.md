@@ -162,14 +162,14 @@ To connect your **M5Stack** to your computer, burn the firmware (load the code p
    - Visit [https://flow.m5stack.com/](https://flow.m5stack.com/)
    - Connect your M5Stack (bottom-left corner of the UI)
    - Open the `</>` **Python** editor
-   - Copy and paste the code from this repository into the editor
+   - Copy and paste the M5Code from this repository into the editor
    - 
 ![M5.png](..%2F..%2FPictures%2FScreenshots%2FM5.png)
 ---
 
 ### 🛠 Configuration
 
-4. To add your Wi-Fi credentials, modify the following section (around lines 21–25):
+4. To add your Wi-Fi credentials, modify the following section (around lines 23–27):
 
    ```python
    networks = [
@@ -177,7 +177,7 @@ To connect your **M5Stack** to your computer, burn the firmware (load the code p
        ('AnotherSSID', 'anotherpassword'),
        ...
    ]
-5. Upload the 5 PNG image files included in this repository:
+5. Upload the 5 PNG image files included in the M5 repository
 
 6. In the M5 Web UI, open the file manager (top-left corner)
 
@@ -190,8 +190,8 @@ To connect your **M5Stack** to your computer, burn the firmware (load the code p
 10. If all looks good, click "Download" (bottom-right corner) to burn the script to the M5Stack. Then, on boot, click on "app"
 
 Notes: 
-1. If you want to return into dev mode, just reboot and click on UiFlow, then go back on M5Flow Web UI.
-2. Burn doesn't work for now, we'll fix it asap.
+1. If you want to return into dev mode, just reboot and click on UiFlow, then go back on M5Flow Web UI (or redo the whole process with settings if this is not working)
+2. Burn doesn't work for now, we'll fix it asap. If you want to burn it still, you can uncomment the 15th line and write your own SSID/credentials
 
 ## 📈 Project Architecture
 
