@@ -57,7 +57,7 @@ def get_city_nominatim(lat, lon):
     return resp.get("address", {}).get("city")
 
 print(get_city_nominatim(46.52, 6.63))
-"""
+
 
 data = { "passwd": PASSWD,
     "alerts": {"HumLow" : True,
@@ -90,4 +90,3 @@ print(response.status_code, response.text)
 response = requests.post(str(url + '/get-all-data'), json = data)
 print("Status Code:", response.status_code)
 print("Response JSON:", response.json())
-"""

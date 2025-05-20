@@ -112,7 +112,7 @@ def send_to_bigquery():
             # Enrich with outdoor weather from OpenWeatherMap
             try:
                 city = data["city"] if "city" in data and data["city"] else "Lausanne"
-                url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&units=metric&appid={OPENWEATHER_API_KEY}&lang=en"
+                url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&units=metric&appid={OPENWEATHER_API_KEY}&lang=fr"
                 response = requests.get(url)
                 weather_json = response.json()
                 data["outdoor_temp"] = weather_json["main"]["temp"]
