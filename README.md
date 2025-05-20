@@ -5,6 +5,8 @@
 
 ## 🎬 Demo Video
 
+- Upcoming in the next few days :/
+
 # Indoor/Outdoor Weather Monitor with Cloud Dashboard
 <img width="1679" alt="Capture d’écran 2025-05-19 à 11 01 37 PM" src="https://github.com/user-attachments/assets/9773bbbf-4366-4ca1-9d24-40e53f01d22d" />
 
