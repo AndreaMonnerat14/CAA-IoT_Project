@@ -465,11 +465,15 @@ def generate_tts_bis():
 
         input_text = texttospeech.SynthesisInput(text=text)
         voice = texttospeech.VoiceSelectionParams(
-            language_code="en-US", ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+            language_code="en-US",
+            name="en-US-Wavenet-F",
+            ssml_gender=texttospeech.SsmlVoiceGender.FEMALE
         )
         audio_config = texttospeech.AudioConfig(
             audio_encoding=texttospeech.AudioEncoding.LINEAR16,
-            sample_rate_hertz=8000
+            sample_rate_hertz=8000,
+            speaking_rate=0.85,
+            effects_profile_id=["telephony-class-application"]  # Optimized for 8kHz
         )
 
         # Perform the TTS request

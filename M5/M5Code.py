@@ -9,8 +9,9 @@ import hashlib
 import ubinascii
 import wifiCfg
 import ntptime
-import ujson
+# import ujson
 import lodepng
+import gc
 
 """
 # Init screen
@@ -52,7 +53,14 @@ if connect_to_known_networks():
 """
 # Init LVGL
 lv.init()
-
+scr = lv.obj()
+scr.set_style_local_bg_color(scr.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0x0d3853))
+loading_label = lv.label(scr)
+loading_label.align(scr, lv.ALIGN.CENTER, -100, 0)
+loading_label.set_style_local_text_color(loading_label.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xf4f6f7))
+loading_label.set_style_local_text_font(loading_label.PART.MAIN, lv.STATE.DEFAULT, lv.font_montserrat_22)
+loading_label.set_text("Data loading...")
+lv.scr_load(scr)
 # Init sensors
 env3 = unit.get(unit.ENV3, unit.PORTA)
 air = unit.get(unit.TVOC, unit.PORTC)
@@ -99,12 +107,16 @@ def get_latest_values():
                     avg_humidity_by_day[day] = float(entry["avg_indoor_humidity"])
 
                 response.close()
+                del response
+                gc.collect()
                 return avg_temp_by_day, avg_humidity_by_day
             else:
                 print("Error from server:", result["message"])
         else:
             print("HTTP Error:", response.status_code)
         response.close()
+        del response
+        gc.collect()
     except Exception as e:
         print("Request failed:", e)
 
@@ -119,9 +131,13 @@ def get_outdoor_weather():
         result = response.json()
         if result["status"] == "success":
             response.close()
+            del response
+            gc.collect()
             return result
     else:
         response.close()
+        del response
+        gc.collect()
         return None
 
 
@@ -140,9 +156,6 @@ tts_alerts = {"passwd": passwd,
 
 # retrieving latest data (3 last recorded days averages)
 temp_hist_data, humidity_hist_data = get_latest_values()
-
-scr = lv.obj()
-scr.set_style_local_bg_color(scr.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0x0d3853))
 
 """
 # Create screens
@@ -168,7 +181,7 @@ clock_label.set_style_local_text_color(clock_label.PART.MAIN, lv.STATE.DEFAULT, 
 label_in = lv.label(scr)
 label_in.set_text("In")
 label_in.align(scr, lv.ALIGN.CENTER, -130, -80)  # Adjust -100 as needed for left centering
-label_in.set_style_local_text_color(label_in.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xf4f6f7))
+label_in.set_style_local_text_color(label_in.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xe6e6e6))
 label_in.set_style_local_text_font(label_in.PART.MAIN, lv.STATE.DEFAULT, lv.font_montserrat_22)
 label_in.set_hidden(True)
 
@@ -201,7 +214,7 @@ eco2_label.set_style_local_text_font(eco2_label.PART.MAIN, lv.STATE.DEFAULT, lv.
 label_out = lv.label(scr)
 label_out.set_text("Out")
 label_out.align(scr, lv.ALIGN.CENTER, 20, -80)  # Adjust 100 as needed for right centering
-label_out.set_style_local_text_color(label_out.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xf4f6f7))
+label_out.set_style_local_text_color(label_out.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xe6e6e6))
 label_out.set_style_local_text_font(label_out.PART.MAIN, lv.STATE.DEFAULT, lv.font_montserrat_22)
 label_out.set_hidden(True)
 
@@ -240,47 +253,16 @@ error_textarea.set_cursor_hidden(True)  # hide cursor so it looks like a label
 error_textarea.set_style_local_text_color(scr.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0x000000))
 error_textarea.set_hidden(True)  # hidden by default
 
-error_counter = 0
-error_triggered = False
-
 
 def display_error(msg):
-    global error_triggered
     if msg:
         error_textarea.set_text(msg)
         error_textarea.set_hidden(False)
         wait(2)
-        error_triggered = True
         error_textarea.set_hidden(True)
     else:
         error_textarea.set_text("")
         error_textarea.set_hidden(True)
-        error_triggered = False
-
-
-"""
-#---- BTNs-----#
-btn = lv.btn(scr)
-btn.set_size(100, 50)
-btn.align(scr, lv.ALIGN.IN_BOTTOM_RIGHT, -10, -10)
-
-style_hist = lv.style_t()
-style_hist.init()
-style_hist.set_bg_color(lv.STATE.DEFAULT, lv.color_hex(0x3260c8))
-style_hist.set_border_color(lv.STATE.DEFAULT, lv.color_hex(0x233560))
-
-style_back = lv.style_t()
-style_back.init()
-style_back.set_bg_color(lv.STATE.DEFAULT, lv.color_hex(0x3260c8))
-style_back.set_border_color(lv.STATE.DEFAULT, lv.color_hex(0x233560))
-
-label = lv.label(btn)
-label.set_text("Hist")
-label.align(btn, lv.ALIGN.CENTER, 0, 0)
-
-btn.add_style(btn.PART.MAIN, style_hist)
-"""
-state = False
 
 
 def get_forecast():
@@ -295,11 +277,11 @@ def get_forecast():
             if result["status"] == "success":
                 return result
             else:
-                error_label.set_text("Server error:" + result["message"])
+                display_error("Server error:" + result["message"])
         else:
-            error_label.set_text("HTTP error:" + str(response.status_code))
+            display_error("HTTP error:" + str(response.status_code))
     except Exception as e:
-        error_label.set_text("Forecast fetch failed:")
+        display_error("Forecast fetch failed:")
     return {}
 
 
@@ -332,6 +314,7 @@ label.set_text("History")
 label.align(btn, lv.ALIGN.CENTER, 0, 0)
 
 btn.add_style(btn.PART.MAIN, style_hist)
+btn.set_hidden(True)
 
 # ----------- FORECAST BUTTON -----------
 btn_forecast = lv.btn(scr)
@@ -343,6 +326,7 @@ label_forecast.set_text("Forecast")
 label_forecast.align(btn_forecast, lv.ALIGN.CENTER, 0, 0)
 
 btn_forecast.add_style(btn.PART.MAIN, style_hist)
+btn_forecast.set_hidden(True)
 
 
 def show_history_data(temp_data, hum_data):
@@ -353,6 +337,7 @@ def show_history_data(temp_data, hum_data):
     history_labels = []
 
     days = list(temp_data.keys())
+    days.sort()
     for i, day in enumerate(days):
         x = col_x_offsets[i]
 
@@ -513,7 +498,7 @@ def preload_forecast_icons(forecast):
             forecast_icons.append(img_dsc)
 
             # Save absolute (x, y) position for this day
-            forecast_icon_positions.append((col_x_offsets[i] + 40, y_icon))  # 160 is screen center X
+            forecast_icon_positions.append((col_x_offsets[i] + 30, y_icon))  # 160 is screen center X
 
     except Exception as e:
         display_error("Preload icon error: " + str(e))
@@ -537,8 +522,9 @@ def display_forecast_icon_for_day(t):
             x, y = forecast_icon_positions[day_index]
             weather_img.set_pos(x, y)
             weather_img.set_hidden(False)
-        if weather_img is not None:
-            weather_img.set_hidden(True)
+        else:
+            if weather_img is not None:
+                weather_img = None
 
     except Exception as e:
         display_error("Show icon err: " + str(e))
@@ -579,8 +565,6 @@ def action(obj, event):
 
 btn.set_event_cb(action)
 
-state_change = False
-
 
 # ---------- FORECAST BUTTON ----------
 def forecast_action(obj, event):
@@ -612,6 +596,8 @@ def forecast_action(obj, event):
             img.set_hidden(False)
             state = "main"
             forecast_state = False
+            if weather_img is not None:
+                weather_img.set_hidden(True)
 
 
 btn_forecast.set_event_cb(forecast_action)
@@ -626,6 +612,8 @@ def get_tts(text):
         with open('tts.wav', 'wb') as f:
             f.write(response.content)
         response.close()
+        del response
+        gc.collect()
         return True
     else:
         display_error("TTS request failed:" + response.text)
@@ -648,7 +636,7 @@ if outTemp:
 else:
     outTemp = ""
 
-wait(3)
+wait(2)
 
 
 def display_weather_image(outWeather):
@@ -694,7 +682,7 @@ def display_weather_image(outWeather):
 
         # Set size (scale)
         img.set_zoom(70)
-        img.align(out_temp_label, lv.ALIGN.CENTER, 30, 60)
+        img.align(out_temp_label, lv.ALIGN.CENTER, 30, 50)
 
     except Exception as e:
         display_error("Img load err: " + str(e))
@@ -726,7 +714,12 @@ def update_labels():
         hum_label.set_text(str(hum) + "%")
         tvoc_label.set_text(str(tvoc) + "ppb")
         eco2_label.set_text(str(eco2) + "ppm")
-        clock_label.set_text(str(ntp.formatDatetime('-', ':')))
+        if str(ntp.formatDatetime('-', ':'))[:3] != "2000":
+            clock_label.set_text(str(ntp.formatDatetime('-', ':')))
+        else:
+            display_error("Cannot load local date:time")
+            # ntp = ntptime.client(host='cn.pool.ntp.org', timezone=2)
+            # clock_label.set_text(str(ntp.formatDatetime('-', ':')))
 
 
     except Exception as e:
@@ -750,7 +743,7 @@ def update_flags():
         "Storm": "storm" in weather,
         "Rain": "rain" in weather,
         "Sun": "sun" in weather,
-        "Warm": outTemp > 14,
+        "Warm": outTemp > 20,
         "Cold": outTemp < 10
     }
 
@@ -776,6 +769,8 @@ def send_data():
     if res.status_code != 200:
         display_error("Couldn't send data to the cloud")
     res.close()
+    del res
+    gc.collect()
 
 
 def send_alert():
@@ -788,29 +783,29 @@ def send_alert():
             display_error("Couldn't load alerts")
 
 
-def play_ding():
-    try:
-        # Optional: List flash to confirm file exists
-        if "ding.wav" not in os.listdir("/res"):
-            display_error("ding.wav not found")
-            return
+def update_variable_label_colors(temp, hum, tvoc, eco2, temp_label, hum_label, tvoc_label, eco2_label):
+    def set_label_color(label, condition):
+        color = lv.color_hex(0xe74c3c) if condition else lv.color_hex(0xf4f6f7)  # red if alert, light gray otherwise
+        label.set_style_local_text_color(label.PART.MAIN, lv.STATE.DEFAULT, color)
 
-        speaker.stop()  # Always stop any current playback first
-        speaker.playWAV("tts.wav", volume=8)  # Avoid wait=False for now
-    except Exception as e:
-        display_error("Audio play error: " + str(e))
+    # Apply threshold conditions
+    set_label_color(temp_label, temp > 26 or temp < 19)
+    set_label_color(hum_label, hum > 60 or hum < 40)
+    set_label_color(tvoc_label, tvoc > 500)
+    set_label_color(eco2_label, eco2 > 1000)
 
 
 forecast_t = 0
 t = 0
-tts_timer = 3595
+tts_timer = 3597
+gc.collect()
 # Main loop
 while True:
-    if str(ntp.formatDatetime('-', ':'))[:3] == "2000":
-        ntp = ntptime.client(host='cn.pool.ntp.org', timezone=2)
 
     if t == 0:
-        # loading_label.delete()
+        loading_label.delete()
+        btn.set_hidden(False)
+        btn_forecast.set_hidden(False)
         lv.scr_load(scr)
         out_temp_label.set_text(str(outTemp) + "°C")
         out_hum_label.set_text(str(outHum) + "%")
@@ -819,40 +814,34 @@ while True:
         display_weather_image(outWeather)
 
     update_labels()
+    update_variable_label_colors(temp, hum, tvoc, eco2, temp_label, hum_label, tvoc_label, eco2_label)
+
     if t % 300 == 0:
         # send data
         send_data()
         # update flags
         update_flags()
+        gc.collect()
 
     # updates forecasts every hour
     if t % 3600 == 0 & t != 0:
         forecast = get_forecast()
 
-    if error_triggered:
-        error_counter += 1
-        if error_counter == 5:
-            error_triggered = False
-            error_counter = 0
-            display_error()
+    if state == "forecast":
+        display_forecast_icon_for_day(forecast_t)
 
-    display_forecast_icon_for_day(forecast_t)
+    if tts_timer > 3600 and pir.state:
+        tts_timer = 0
+        if get_tts(tts_alerts):
+            try:
+                speaker.playWAV("tts.wav", volume=8)
+                wait(10)
+                gc.collect()
+            except Exception as e:
+                display_error("Playback error: " + str(e))
+        else:
+            display_error("Couldn't load alerts")
 
-    """
-    if tts_timer >3600 and pir.state:
-      tts_timer = 0
-      if get_tts(tts_alerts):
-        display_error("Successful")
-        #speaker.stop()
-        try:
-          #_thread.start_new_thread(play_ding, ())
-          speaker.playWAV("tts.wav", volume=8)
-        except:
-          speaker.stop()
-          display_error("Not working")
-      else:
-        display_error("Couldn't load alerts")"""
-    # send_alert()
     t += 1
     tts_timer += 1
     forecast_t += 1
