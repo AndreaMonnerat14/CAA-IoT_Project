@@ -10,6 +10,10 @@
 # Indoor/Outdoor Weather Monitor with Cloud Dashboard
 <img width="1679" alt="Capture d’écran 2025-05-19 à 11 01 37 PM" src="https://github.com/user-attachments/assets/9773bbbf-4366-4ca1-9d24-40e53f01d22d" />
 
+## Streamlit Dashboard link
+
+https://streamlit-caa-iot-project-1008838592938.europe-west6.run.app/
+
 ## 📋 Project Overview
 
 This project implements a comprehensive indoor/outdoor weather monitoring system using M5stack IoT devices with environmental sensors, integrated with Google Cloud Platform and OpenWeatherMap API. The system captures, analyzes, and visualizes both indoor measurements (temperature, humidity, air quality) and outdoor weather data in real-time.
