@@ -10,13 +10,14 @@ import ubinascii
 import wifiCfg
 import ntptime
 import ujson
-import _thread
 import lodepng
 
+"""
 # Init screen
 screen = M5Screen()
 screen.clean_screen()
 screen.set_screen_bg_color(0x000000)
+"""
 
 """
 #Wifi connection
@@ -140,14 +141,14 @@ tts_alerts = {"passwd": passwd,
 # retrieving latest data (3 last recorded days averages)
 temp_hist_data, humidity_hist_data = get_latest_values()
 
-# Create screens
-scr1 = lv.obj()
-scr1.set_style_local_bg_color(scr1.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0x0d3853))
-
 scr = lv.obj()
 scr.set_style_local_bg_color(scr.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0x0d3853))
 
-# Loading label
+"""
+# Create screens
+scr1 = lv.obj()
+scr1.set_style_local_bg_color(scr1.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0x0d3853))
+#Loading label
 loading_label = lv.label(scr1)
 loading_label.align(scr1, lv.ALIGN.OUT_BOTTOM_LEFT, 0, 10)
 loading_label.set_style_local_text_color(loading_label.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xf4f6f7))
@@ -156,7 +157,7 @@ loading_label.set_text("Data loading...")
 
 # Load screen
 lv.scr_load(scr1)
-
+"""
 # Date/time label at top center
 clock_label = lv.label(scr)
 clock_label.set_text("")
@@ -167,7 +168,7 @@ clock_label.set_style_local_text_color(clock_label.PART.MAIN, lv.STATE.DEFAULT, 
 label_in = lv.label(scr)
 label_in.set_text("In")
 label_in.align(scr, lv.ALIGN.CENTER, -130, -80)  # Adjust -100 as needed for left centering
-label_in.set_style_local_text_color(label_in.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xd3d0d0))
+label_in.set_style_local_text_color(label_in.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xf4f6f7))
 label_in.set_style_local_text_font(label_in.PART.MAIN, lv.STATE.DEFAULT, lv.font_montserrat_22)
 label_in.set_hidden(True)
 
@@ -200,7 +201,7 @@ eco2_label.set_style_local_text_font(eco2_label.PART.MAIN, lv.STATE.DEFAULT, lv.
 label_out = lv.label(scr)
 label_out.set_text("Out")
 label_out.align(scr, lv.ALIGN.CENTER, 20, -80)  # Adjust 100 as needed for right centering
-label_out.set_style_local_text_color(label_out.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xd3d0d0))
+label_out.set_style_local_text_color(label_out.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xf4f6f7))
 label_out.set_style_local_text_font(label_out.PART.MAIN, lv.STATE.DEFAULT, lv.font_montserrat_22)
 label_out.set_hidden(True)
 
@@ -320,12 +321,11 @@ style_hist = lv.style_t()
 style_hist.init()
 style_hist.set_bg_color(lv.STATE.DEFAULT, lv.color_hex(0x3260c8))
 style_hist.set_border_color(lv.STATE.DEFAULT, lv.color_hex(0x233560))
-style_hist.set_style_local_text_color(lv.STATE.DEFAULT, lv.color_hex(0xf4f6f7))
 
 style_back = lv.style_t()
 style_back.init()
-style_back.set_bg_color(lv.STATE.DEFAULT, lv.color_hex(0xeeeeee))
-style_back.set_border_color(lv.STATE.DEFAULT, lv.color_hex(0xeeeeee))
+style_back.set_bg_color(lv.STATE.DEFAULT, lv.color_hex(0xFFFFFF))
+style_back.set_border_color(lv.STATE.DEFAULT, lv.color_hex(0xFFFFFF))
 
 label = lv.label(btn)
 label.set_text("History")
@@ -443,9 +443,8 @@ def display_forecast(forecast):
 
             min_temp = str(round(day_info.get("min", "?")))
             max_temp = str(round(day_info.get("max", "?")))
-            desc = day_info.get("description", "No data")
 
-            values = [day_str, min_temp + "°C", max_temp + "°C", desc]
+            values = [day_str, min_temp + "°C", max_temp + "°C"]
 
             for j, val in enumerate(values):
                 try:
@@ -460,6 +459,92 @@ def display_forecast(forecast):
 
     except Exception as e:
         display_error("Unhandled error: " + str(e))
+
+
+forecast_state = False
+forecast_icons = []
+forecast_icon_positions = []
+weather_img = None  # This will be the reusable lv.img object
+
+
+def preload_forecast_icons(forecast):
+    global forecast_icons, forecast_icon_positions
+
+    forecast_icons = []
+    forecast_icon_positions = []
+
+    try:
+        summary = forecast.get("forecast_summary", {})
+        dates = sorted(list(summary.keys()))
+        max_days = min(3, len(dates))
+
+        col_x_offsets = [-80, 10, 100]  # Same as in display_forecast
+        y_icon = 10  # Adjust based on UI
+
+        for i in range(max_days):
+            day_info = summary[dates[i]]
+            desc = day_info.get("description", "").lower()
+
+            # Determine image path
+            img_path = "res/"
+            if "light" in desc:
+                img_path += "light.png"
+            elif "rain" in desc:
+                img_path += "rain.png"
+            elif "snow" in desc:
+                img_path += "snow.png"
+            elif "scattered" in desc:
+                img_path += "scatter_clouds.png"
+            elif "cloud" in desc:
+                img_path += "clouds.png"
+            elif "clear" in desc or "sun" in desc:
+                img_path += "sun.png"
+            else:
+                img_path += "unknown.png"
+
+            # Load binary image
+            with open(img_path, 'rb') as f:
+                img_data = f.read()
+
+            img_dsc = lv.img_dsc_t()
+            img_dsc.data = img_data
+            img_dsc.data_size = len(img_data)
+
+            forecast_icons.append(img_dsc)
+
+            # Save absolute (x, y) position for this day
+            forecast_icon_positions.append((col_x_offsets[i] + 40, y_icon))  # 160 is screen center X
+
+    except Exception as e:
+        display_error("Preload icon error: " + str(e))
+
+
+def display_forecast_icon_for_day(t):
+    global weather_img, forecast_icons, forecast_icon_positions, forecast_state
+
+    try:
+        if forecast_state:
+            day_index = t % len(forecast_icons)
+
+            # First time creation
+            if weather_img is None:
+                weather_img = lv.img(lv.scr_act())
+                weather_img.set_zoom(70)
+
+            weather_img.set_src(forecast_icons[day_index])
+
+            # Use absolute position
+            x, y = forecast_icon_positions[day_index]
+            weather_img.set_pos(x, y)
+            weather_img.set_hidden(False)
+        if weather_img is not None:
+            weather_img.set_hidden(True)
+
+    except Exception as e:
+        display_error("Show icon err: " + str(e))
+
+
+preload_forecast_icons(forecast)
 
 
 # ---------- HIST BUTTON ----------
@@ -494,10 +579,12 @@ def action(obj, event):
 
 btn.set_event_cb(action)
 
+state_change = False
+
 
 # ---------- FORECAST BUTTON ----------
 def forecast_action(obj, event):
-    global state, forecast
+    global state, forecast, forecast_state
     if event == lv.EVENT.CLICKED:
         if state == "main":
             # switch to forecast
@@ -510,6 +597,7 @@ def forecast_action(obj, event):
             btn_forecast.add_style(btn_forecast.PART.MAIN, style_back)
             display_forecast(forecast)
             state = "forecast"
+            forecast_state = True
 
         elif state == "forecast":
             # return to main
@@ -523,6 +611,7 @@ def forecast_action(obj, event):
             btn.set_hidden(False)
             img.set_hidden(False)
             state = "main"
+            forecast_state = False
 
 
 btn_forecast.set_event_cb(forecast_action)
@@ -561,9 +650,6 @@ else:
 
 wait(3)
 
-t = 0
-tts_timer = 3595
-
 
 def display_weather_image(outWeather):
     try:
@@ -575,55 +661,6 @@ def display_weather_image(outWeather):
         # Lowercase and check for weather type
         w = str(outWeather).strip().lower()
 
-        # Default image path
-        img_path = "res/"
-
-        if "light" in w:
-            img_path += "light.png"
-        elif "rain" in w:
-            img_path += "rain.png"
-        elif "snow" in w:
-            img_path += "snow.png"
-        elif "scattered" in w:
-            img_path += "scatter_clouds.png"
-        elif "cloud" in w:
-            img_path += "clouds.png"
-        elif "clear" in w or "sun" in w:
-            img_path += "sun.png"
-        else:
-            return
-
-        # rain/scat
-        with open(img_path, 'rb') as f:
-            img_data = f.read()
-
-        # Decode the PNG
-        img_dsc = lv.img_dsc_t()
-        img_dsc.data = img_data
-        img_dsc.data_size = len(img_data)
-
-        # Create image object
-        img = lv.img(lv.scr_act())
-        img.set_src(img_dsc)
-
-        # Set size (scale)
-        img.set_zoom(70)
-        img.align(out_temp_label, lv.ALIGN.CENTER, 30, 60)
-
-    except Exception as e:
-        display_error("Img load err: " + str(e))
-
-
-def display_weather_image_forecast(outWeather):
-    try:
-        # Clear any existing image if needed (optional)
-        global weather_img
-        if "weather_img" in globals() and weather_img:
-            weather_img.delete()
-        display_error(outWeather)
-        # Lowercase and check for weather type
-        w = str(outWeather).strip().lower()
-        display_error(w)
         # Default image path
         img_path = "res/"
 
@@ -764,13 +801,16 @@ def play_ding():
         display_error("Audio play error: " + str(e))
 
 
+forecast_t = 0
+t = 0
+tts_timer = 3595
 # Main loop
 while True:
     if str(ntp.formatDatetime('-', ':'))[:3] == "2000":
         ntp = ntptime.client(host='cn.pool.ntp.org', timezone=2)
 
     if t == 0:
-        loading_label.delete()
+        # loading_label.delete()
         lv.scr_load(scr)
         out_temp_label.set_text(str(outTemp) + "°C")
         out_hum_label.set_text(str(outHum) + "%")
@@ -795,6 +835,9 @@ while True:
             error_triggered = False
             error_counter = 0
             display_error()
+
+    display_forecast_icon_for_day(forecast_t)
+
     """
     if tts_timer >3600 and pir.state:
       tts_timer = 0
@@ -812,4 +855,5 @@ while True:
     # send_alert()
     t += 1
     tts_timer += 1
+    forecast_t += 1
     wait_ms(600)

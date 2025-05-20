@@ -142,7 +142,12 @@ def send_to_bigquery():
             insert_q = f"""INSERT INTO assignment1-452312.Lab4_IoT_datasets.weather-records ({names}) VALUES({values})"""
 
             # Execute insert
-            client.query(insert_q)
+            try:
+                query_job = client.query(insert_q)
+                query_job.result()  # Will raise a GoogleCloudError if the query fails
+            except Exception as e:
+                print(f"[ERROR] BigQuery insert failed: {e}")
+                return {"status": "failed", "message": "BigQuery insert failed", "details": str(e)}, 500
 
             return {"status": "success", "data": data}
 
