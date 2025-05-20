@@ -21,8 +21,7 @@ scr.set_style_local_bg_color(scr.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0x0d3
 
 # Known WiFi Networks
 networks = [
-    ('Redmi Note 7', 'local123'),
-    ('iot-unil', '4u6uch4hpY9pJ2f9'),
+    ('YourNetwork', 'YourPassword'),
     ('OtherNetwork', 'password123')
 ]
 
@@ -105,7 +104,7 @@ except Exception as e:
 wait(1)
 
 # password
-passwd = "okmec"
+passwd = ""
 hash_bytes = hashlib.sha256(passwd.encode()).digest()
 passwd = ubinascii.hexlify(hash_bytes).decode()
 
