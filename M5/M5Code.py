@@ -9,62 +9,97 @@ import hashlib
 import ubinascii
 import wifiCfg
 import ntptime
-# import ujson
-import lodepng
-import gc
+import lodepng  # handling png to binary (for lvgl)
+import gc  # handling memory
 
-"""
-# Init screen
-screen = M5Screen()
-screen.clean_screen()
-screen.set_screen_bg_color(0x000000)
-"""
+# LVGL init
+lv.init()
+scr = lv.obj()
+scr.set_style_local_bg_color(scr.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0x0d3853))
 
-"""
-#Wifi connection
+# Known WiFi Networks
 networks = [
     ('Redmi Note 7', 'local123'),
     ('iot-unil', '4u6uch4hpY9pJ2f9'),
     ('OtherNetwork', 'password123')
 ]
 
-wifi_status = M5Label("Connecting to WiFi...", x=20, y=20, color=0x000000, font=FONT_MONT_18)
 
+# Initial Connection with Local Label
 def connect_to_known_networks():
-    available = wifiCfg.wlan_sta.scan()
-    available_names = [net[0].decode('utf-8') for net in available]
+    loading_label = lv.label(scr)
+    loading_label.align(scr, lv.ALIGN.CENTER, -120, 0)
+    loading_label.set_style_local_text_color(loading_label.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xf4f6f7))
+    loading_label.set_style_local_text_font(loading_label.PART.MAIN, lv.STATE.DEFAULT, lv.font_montserrat_22)
+    loading_label.set_text("Connecting to WiFi...")
 
-    for ssid, password in networks:
-        if ssid in available_names:
-            wifi_status.set_text("Trying " + str(ssid) + "...")
-            wifiCfg.doConnect(ssid, password)
-            for i in range(10):
-                if wifiCfg.wlan_sta.isconnected():
-                    ip = wifiCfg.wlan_sta.ifconfig()[0]
-                    wifi_status.set_text("Connected: " + ip)
-                    return True
-                time.sleep(1)
-    wifi_status.set_text("No known networks found.")
-    return False
+    lv.scr_load(scr)
 
-#--- At start --- #
-if connect_to_known_networks():
-  wifi_status.set_text("Connected !")
-"""
-# Init LVGL
-lv.init()
-scr = lv.obj()
-scr.set_style_local_bg_color(scr.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0x0d3853))
+    while True:
+        available = wifiCfg.wlan_sta.scan()
+        available_names = [net[0].decode('utf-8') for net in available]
+
+        for ssid, password in networks:
+            if ssid in available_names:
+                loading_label.set_text("Trying " + ssid + "...")
+                lv.task_handler()
+                wifiCfg.doConnect(ssid, password)
+
+                for _ in range(10):
+                    if wifiCfg.wlan_sta.isconnected():
+                        ip = wifiCfg.wlan_sta.ifconfig()[0]
+                        loading_label.set_text("Connected: " + ip)
+                        lv.task_handler()
+                        time.sleep(2)
+                        loading_label.delete()
+                        gc.collect()
+                        return True
+                    time.sleep(1)
+
+        loading_label.set_text("Retrying in 5s...")
+        lv.task_handler()
+        time.sleep(5)
+
+
+connect_to_known_networks()
+
+# Init LVGL screen and loading label
+
 loading_label = lv.label(scr)
 loading_label.align(scr, lv.ALIGN.CENTER, -100, 0)
 loading_label.set_style_local_text_color(loading_label.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xf4f6f7))
 loading_label.set_style_local_text_font(loading_label.PART.MAIN, lv.STATE.DEFAULT, lv.font_montserrat_22)
 loading_label.set_text("Data loading...")
-lv.scr_load(scr)
+
+# Error display area
+error_textarea = lv.textarea(scr)
+error_textarea.set_size(300, 100)
+error_textarea.align(scr, lv.ALIGN.IN_BOTTOM_MID, 0, -10)
+error_textarea.set_text("")  # start empty
+error_textarea.set_cursor_hidden(True)  # hide cursor so it looks like a label
+error_textarea.set_style_local_text_color(scr.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0x000000))
+error_textarea.set_hidden(True)  # hidden by default
+
+
+# displaying errors
+def display_error(msg):
+    if msg:
+        error_textarea.set_text(msg)
+        error_textarea.set_hidden(False)
+        wait(2)
+        error_textarea.set_hidden(True)
+    else:
+        error_textarea.set_text("")
+        error_textarea.set_hidden(True)
+
+
 # Init sensors
-env3 = unit.get(unit.ENV3, unit.PORTA)
-air = unit.get(unit.TVOC, unit.PORTC)
-pir = unit.get(unit.PIR, unit.PORTB)
+try:
+    env3 = unit.get(unit.ENV3, unit.PORTA)
+    air = unit.get(unit.TVOC, unit.PORTC)
+    pir = unit.get(unit.PIR, unit.PORTB)
+except Exception as e:
+    display_error("Sensor connection error, please check wires: " + str(e))
 wait(1)
 
 # password
@@ -76,15 +111,21 @@ passwd = ubinascii.hexlify(hash_bytes).decode()
 ntp = ntptime.client(host='cn.pool.ntp.org', timezone=2)
 
 # location
-ip_info = urequests.get("http://ip-api.com/json").json()
+ip_info_res = urequests.get("http://ip-api.com/json")
+ip_info = ip_info_res.json()
 lat = ip_info.get("lat")
 lon = ip_info.get("lon")
 city = ip_info.get("city")
+
+ip_info_res.close()
+del ip_info, ip_info_res
+gc.collect()
 
 # Flask URL
 flask_url = "https://caa-iot-project-1008838592938.europe-west6.run.app"
 
 
+# retrieve historical values (3 last recorded days)
 def get_latest_values():
     global passwd, flask_url
     headers = {'Content-Type': 'application/json'}
@@ -111,9 +152,9 @@ def get_latest_values():
                 gc.collect()
                 return avg_temp_by_day, avg_humidity_by_day
             else:
-                print("Error from server:", result["message"])
+                display_error("Error from server: " + result["message"])
         else:
-            print("HTTP Error:", response.status_code)
+            display_error("HTTP Error: " + response.status_code)
         response.close()
         del response
         gc.collect()
@@ -123,6 +164,7 @@ def get_latest_values():
     return {}, {}  # Return empty dicts if something went wrong
 
 
+# Current weather
 def get_outdoor_weather():
     global passwd, flask_url
     data = {"passwd": passwd}
@@ -141,7 +183,7 @@ def get_outdoor_weather():
         return None
 
 
-# tts_alerts
+# tts_alerts - used to identify (too) high or low values
 tts_alerts = {"passwd": passwd,
               "alerts": {"HumLow": False,
                          "HumHigh": False,
@@ -157,25 +199,16 @@ tts_alerts = {"passwd": passwd,
 # retrieving latest data (3 last recorded days averages)
 temp_hist_data, humidity_hist_data = get_latest_values()
 
-"""
-# Create screens
-scr1 = lv.obj()
-scr1.set_style_local_bg_color(scr1.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0x0d3853))
-#Loading label
-loading_label = lv.label(scr1)
-loading_label.align(scr1, lv.ALIGN.OUT_BOTTOM_LEFT, 0, 10)
-loading_label.set_style_local_text_color(loading_label.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xf4f6f7))
-loading_label.set_style_local_text_font(loading_label.PART.MAIN, lv.STATE.DEFAULT, lv.font_montserrat_22)
-loading_label.set_text("Data loading...")
-
-# Load screen
-lv.scr_load(scr1)
-"""
 # Date/time label at top center
 clock_label = lv.label(scr)
 clock_label.set_text("")
 clock_label.align(scr, lv.ALIGN.IN_TOP_MID, -20, 5)
 clock_label.set_style_local_text_color(clock_label.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xf4f6f7))
+
+loc_label = lv.label(scr)
+loc_label.set_text("")
+loc_label.align(scr, lv.ALIGN.IN_TOP_LEFT, 0, 5)
+loc_label.set_style_local_text_color(loc_label.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xf4f6f7))
 
 # "In" label on center left
 label_in = lv.label(scr)
@@ -245,26 +278,31 @@ out_weather_label.set_style_local_text_font(out_weather_label.PART.MAIN, lv.STAT
 out_weather_label.align(scr, lv.ALIGN.IN_TOP_MID, 0, 190)
 out_weather_label.set_text("")
 
-error_textarea = lv.textarea(scr)
-error_textarea.set_size(300, 100)
-error_textarea.align(scr, lv.ALIGN.IN_BOTTOM_MID, 0, -10)
-error_textarea.set_text("")  # start empty
-error_textarea.set_cursor_hidden(True)  # hide cursor so it looks like a label
-error_textarea.set_style_local_text_color(scr.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0x000000))
-error_textarea.set_hidden(True)  # hidden by default
+
+# Reconnect to Wifi If Lost
+def reconnect_if_lost():
+    if not wifiCfg.wlan_sta.isconnected():
+        display_error("WiFi lost. Reconnecting...")
+
+        for attempt in range(3):  # Try 3 times
+            available = wifiCfg.wlan_sta.scan()
+            available_names = [net[0].decode('utf-8') for net in available]
+
+            for ssid, password in networks:
+                if ssid in available_names:
+                    wifiCfg.doConnect(ssid, password)
+                    for _ in range(10):
+                        if wifiCfg.wlan_sta.isconnected():
+                            return True
+                        time.sleep(1)
+            time.sleep(5)
+
+        display_error("WiFi reconnection failed.")
+        return False
+    return True
 
 
-def display_error(msg):
-    if msg:
-        error_textarea.set_text(msg)
-        error_textarea.set_hidden(False)
-        wait(2)
-        error_textarea.set_hidden(True)
-    else:
-        error_textarea.set_text("")
-        error_textarea.set_hidden(True)
-
-
+# getting 3 days forecasts
 def get_forecast():
     global passwd, flask_url, lat, lon, city
     headers = {'Content-Type': 'application/json'}
@@ -291,7 +329,7 @@ forecast = get_forecast()
 forecast_labels = []
 history_labels = []
 main_labels = [temp_label, hum_label, tvoc_label, eco2_label, clock_label, out_temp_label, out_hum_label, label_in,
-               label_out]
+               label_out, loc_label]
 state = "main"  # can be 'main', 'hist', or 'forecast'
 
 # ----------- HIST BUTTON -----------
@@ -329,6 +367,7 @@ btn_forecast.add_style(btn.PART.MAIN, style_hist)
 btn_forecast.set_hidden(True)
 
 
+# Displaying the 3 last recorded days
 def show_history_data(temp_data, hum_data):
     col_x_offsets = [-90, 0, 90]
     global history_labels
@@ -370,6 +409,7 @@ def show_history_data(temp_data, hum_data):
     history_labels.append(hist_title_lbl)
 
 
+# displaying the next 3 days' forecasts
 def display_forecast(forecast):
     global forecast_labels
     try:
@@ -452,6 +492,7 @@ forecast_icon_positions = []
 weather_img = None  # This will be the reusable lv.img object
 
 
+# Preloading icons to avoid memory usage during loop
 def preload_forecast_icons(forecast):
     global forecast_icons, forecast_icon_positions
 
@@ -504,6 +545,7 @@ def preload_forecast_icons(forecast):
         display_error("Preload icon error: " + str(e))
 
 
+# Displaying forecast icons depending on time to draw dynamics
 def display_forecast_icon_for_day(t):
     global weather_img, forecast_icons, forecast_icon_positions, forecast_state
 
@@ -533,7 +575,7 @@ def display_forecast_icon_for_day(t):
 preload_forecast_icons(forecast)
 
 
-# ---------- HIST BUTTON ----------
+# ---------- HIST BUTTON Action ----------
 def action(obj, event):
     global state, img
     if event == lv.EVENT.CLICKED:
@@ -566,7 +608,7 @@ def action(obj, event):
 btn.set_event_cb(action)
 
 
-# ---------- FORECAST BUTTON ----------
+# ---------- FORECAST BUTTON Action ----------
 def forecast_action(obj, event):
     global state, forecast, forecast_state
     if event == lv.EVENT.CLICKED:
@@ -620,9 +662,7 @@ def get_tts(text):
         return False
 
 
-# Load screen
-# lv.scr_load(scr)
-
+# loading first values
 temp = env3.temperature
 hum = env3.humidity
 tvoc = air.TVOC
@@ -682,7 +722,7 @@ def display_weather_image(outWeather):
 
         # Set size (scale)
         img.set_zoom(70)
-        img.align(out_temp_label, lv.ALIGN.CENTER, 30, 50)
+        img.align(out_temp_label, lv.ALIGN.CENTER, 30, 55)
 
     except Exception as e:
         display_error("Img load err: " + str(e))
@@ -714,19 +754,15 @@ def update_labels():
         hum_label.set_text(str(hum) + "%")
         tvoc_label.set_text(str(tvoc) + "ppb")
         eco2_label.set_text(str(eco2) + "ppm")
-        if str(ntp.formatDatetime('-', ':'))[:3] != "2000":
-            clock_label.set_text(str(ntp.formatDatetime('-', ':')))
-        else:
+        clock_label.set_text(str(ntp.formatDatetime('-', ':')))
+        if str(ntp.formatDatetime('-', ':')).startswith("2000") and t == 0:
             display_error("Cannot load local date:time")
-            # ntp = ntptime.client(host='cn.pool.ntp.org', timezone=2)
-            # clock_label.set_text(str(ntp.formatDatetime('-', ':')))
-
 
     except Exception as e:
-        error_label.set_text("ERROR: Cannot update values.")
-        print("Sensor read error:", e)
+        display_error("Sensor read error:" + e)
 
 
+# updating alert flags
 def update_flags():
     global tts_alerts, temp, hum, tvoc, eco2, outTemp, outHum, t, outWeather
 
@@ -751,6 +787,7 @@ def update_flags():
     tts_alerts["alerts"] = alerts
 
 
+# Send to bigquery
 def send_data():
     global passwd, flask_url, temp, hum, tvoc, eco2, lat, lon, city
     data = {
@@ -773,16 +810,7 @@ def send_data():
     gc.collect()
 
 
-def send_alert():
-    global passwd, flask_url, tts_alerts, tts_timer, pir
-    if tts_timer > 3600 and pir.state:
-        tts_timer = 0
-        if get_tts(tts_alerts):
-            speaker.playWAV("tts.wav", volume=8)
-        else:
-            display_error("Couldn't load alerts")
-
-
+# upadting colors wrt alerts
 def update_variable_label_colors(temp, hum, tvoc, eco2, temp_label, hum_label, tvoc_label, eco2_label):
     def set_label_color(label, condition):
         color = lv.color_hex(0xe74c3c) if condition else lv.color_hex(0xf4f6f7)  # red if alert, light gray otherwise
@@ -795,13 +823,18 @@ def update_variable_label_colors(temp, hum, tvoc, eco2, temp_label, hum_label, t
     set_label_color(eco2_label, eco2 > 1000)
 
 
+# timers
 forecast_t = 0
 t = 0
 tts_timer = 3597
 gc.collect()
+
 # Main loop
 while True:
-
+    # checks connection every minute
+    if t % 60 == 0:
+        reconnect_if_lost()
+    # init labels, btns, image at start
     if t == 0:
         loading_label.delete()
         btn.set_hidden(False)
@@ -809,13 +842,19 @@ while True:
         lv.scr_load(scr)
         out_temp_label.set_text(str(outTemp) + "°C")
         out_hum_label.set_text(str(outHum) + "%")
+        if city:
+            loc_label.set_text(str(city))
+        else:
+            loc_label.set_text("Lat: " + lat + " - Lon: " + lon)
         label_in.set_hidden(False)
         label_out.set_hidden(False)
         display_weather_image(outWeather)
 
+    # updating labels/colors
     update_labels()
     update_variable_label_colors(temp, hum, tvoc, eco2, temp_label, hum_label, tvoc_label, eco2_label)
 
+    # send data every 5 min
     if t % 300 == 0:
         # send data
         send_data()
@@ -827,9 +866,11 @@ while True:
     if t % 3600 == 0 & t != 0:
         forecast = get_forecast()
 
+    # displays forecast icons when in forecast screen
     if state == "forecast":
         display_forecast_icon_for_day(forecast_t)
 
+    # send alerts if there is movement and if it's been at least an hour last alert was given
     if tts_timer > 3600 and pir.state:
         tts_timer = 0
         if get_tts(tts_alerts):
@@ -842,7 +883,10 @@ while True:
         else:
             display_error("Couldn't load alerts")
 
+    # increments
     t += 1
     tts_timer += 1
     forecast_t += 1
+
+    # waiting time
     wait_ms(600)
