@@ -164,7 +164,8 @@ To connect your **M5Stack** to your computer, burn the firmware (load the code p
    - Open the `</>` **Python** editor
    - Copy and paste the M5Code from this repository into the editor
    - 
-![M5.png](..%2F..%2FPictures%2FScreenshots%2FM5.png)
+![M5](https://github.com/user-attachments/assets/64b9193f-3cc6-4882-95bd-97eb351a3cb2)
+
 ---
 
 ### 🛠 Configuration
