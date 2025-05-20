@@ -183,7 +183,7 @@ if selected == "Dashboard":
             # Display weather details
             weather_details = {
                 "Temperature": f"{latest.get('outdoor_temp', '?')} °C",
-                "Description": latest.get('weather_desc', 'No data'),
+                "Description": latest.get('outdoor_weather', 'No data'),
                 "Humidity": f"{latest.get('outdoor_humidity', '?')} %"
             }
 

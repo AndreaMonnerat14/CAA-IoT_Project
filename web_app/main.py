@@ -37,6 +37,7 @@ except Exception as e:
 #%%
 app = Flask(__name__)
 
+#get the right time and date
 def get_local_datetime_info(timezone_str="Europe/Zurich"):
     now = datetime.now(ZoneInfo(timezone_str))
     return {
@@ -45,12 +46,14 @@ def get_local_datetime_info(timezone_str="Europe/Zurich"):
         "timestamp": now.isoformat()
     }
 
+#get city from location (ip)
 def get_city_nominatim(lat, lon):
     url = f"https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat={lat}&lon={lon}"
     headers = {"User-Agent": "MyIoTApp/1.0"}
     resp = requests.get(url, headers=headers).json()
     return resp.get("address", {}).get("city")
 
+#call to openAI API
 def generate_llm_alert(tag, base_text):
     prompt = (
         f"You are a friendly and funny assistant generating human-like weather and environment alerts for a m5stack weather station.\n"
@@ -72,7 +75,7 @@ def generate_llm_alert(tag, base_text):
                 {"role": "user", "content": prompt}
             ],
            #this parameter adds creativity to the model, if you increase it, you give the llm more freedom to generate a text
-            temperature=0.95
+            temperature=1.2
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
@@ -121,7 +124,7 @@ def send_to_bigquery():
             except Exception as e:
                 print(f"[WARN] Failed to fetch outdoor weather: {e}")
 
-            # Get column types
+            # Get column types to avoid mismatch
             schema_query = """
             SELECT * FROM `assignment1-452312.Lab4_IoT_datasets.weather-records` LIMIT 1
             """
@@ -157,18 +160,20 @@ def send_to_bigquery():
     return {"status": "failed", "message": "Method not allowed"}, 405
 
 
-# Météo extérieur pour streamlit
+#External weather
 @app.route('/get_outdoor_weather', methods=['POST'])
 def get_outdoor_weather():
     try:
         # Parse the request body (assuming it's JSON)
         body = request.get_json(force=True)
 
+        #Check password
         if not body or 'passwd' not in body:
             return {"status": "failed", "message": "Missing password"}, 400
         if body["passwd"] != HASH_PASSWD:
             return {"status": "failed", "message": "Incorrect password"}, 403
 
+        #trying to retrieve location
         lat = float(body.get("lat", 46.4))  # Default latitude
         lon = float(body.get("lon", 6.3))   # Default longitude
 
@@ -196,60 +201,13 @@ def get_outdoor_weather():
         return {"status": "failed", "message": str(e)}, 500
 
 
-# Pour afficher les données indoor sur le streamlit
-@app.route('/get-indoor-data', methods=['POST'])
-def get_indoor_data():
-    try:
-        # Parse the request body (assuming it's JSON)
-        body = request.get_json(force=True)
-
-        # Check if the password is provided and correct
-        if not body or "passwd" not in body:
-            return {"status": "failed", "message": "Missing password"}, 400
-        if body["passwd"] != HASH_PASSWD:
-            return {"status": "failed", "message": "Incorrect password"}, 403
-
-        # Get parameters from the request body
-        start_date = body.get("start_date")  # ex: "2025-05-01"
-        end_date = body.get("end_date")      # ex: "2025-05-04"
-        limit = int(body.get("limit", 100))  # Default limit is 100
-
-        # Build the query for the database
-        base_q = "SELECT * FROM `assignment1-452312.Lab4_IoT_datasets.weather-records`"
-        conditions = []
-
-        # Add conditions based on the provided start and end dates
-        if start_date:
-            conditions.append(f"date >= '{start_date}'")
-        if end_date:
-            conditions.append(f"date <= '{end_date}'")
-
-        if conditions:
-            base_q += " WHERE " + " AND ".join(conditions)
-
-        base_q += f" ORDER BY timestamp DESC LIMIT {limit}"
-
-        # Try to query the database and return data
-        try:
-            df = client.query(base_q).to_dataframe()
-            df = df.astype(str)
-            data = df.to_dict(orient="records")
-            return {"status": "success", "data": data}
-        except Exception as e:
-            return {"status": "failed", "message": str(e)}, 500
-
-    except Exception as e:
-        return {"status": "failed", "message": "Invalid request or method not allowed"}, 400
-
-
-
-
-# Pour afficher les dernières valeurs du m5stack au redémarrage
+#Retrieving latest values for M5 UI
 @app.route('/get-latest-values', methods=['GET', 'POST'])
 def get_latest_values():
     if request.method == 'POST':
         body = request.get_json(force=True)
 
+        #password check
         if not body or "passwd" not in body:
             return {"status": "failed", "message": "Missing password"}, 400
         if body["passwd"] != HASH_PASSWD:
@@ -288,10 +246,11 @@ def get_latest_values():
 
     return {"status": "failed", "message": "Method not allowed"}, 405
 
-
+#retrieve all data
 @app.route('/get-all-data', methods=['POST'])
 def get_all_data():
     body = request.get_json(force=True)
+    #password check
     if not body or body.get("passwd") != HASH_PASSWD:
         return {"status": "failed", "message": "Authentication error"}, 403
     try:
@@ -325,7 +284,7 @@ def get_weather_forecast():
     except Exception as e:
         return {"status": "failed", "message": str(e)}, 500
 
-
+#special endpoint for M5 UI
 @app.route('/get-weather-forecast-3', methods=['POST'])
 def get_weather_forecast_3():
     try:
@@ -370,6 +329,7 @@ def get_weather_forecast_3():
         sorted_dates = sorted(d for d in days.keys() if datetime.strptime(d, "%Y-%m-%d").date() > today)
         next_dates = sorted_dates[:3]
 
+        #Creating a special JSON format to avoid overloading M5stack with data
         result = {}
         for date in next_dates:
             entries = days[date]
@@ -391,46 +351,7 @@ def get_weather_forecast_3():
     except Exception as e:
         return jsonify({"status": "failed", "message": str(e)}), 500
 
-
-@app.route('/generate-texttospeech', methods=['POST'])
-def generate_tts():
-    try:
-        body = request.get_json(force=True)
-
-        if not body or body.get("passwd") != HASH_PASSWD:
-            return {"status": "failed", "message": "Authentication error"}, 403
-
-        text = body.get("text")
-
-        if not text:
-            return jsonify({"error": "Missing 'text' in request"}), 400
-
-        # Set up the client
-        client = texttospeech.TextToSpeechClient()
-
-        input_text = texttospeech.SynthesisInput(text=text)
-        voice = texttospeech.VoiceSelectionParams(
-            language_code="en-US", ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
-        )
-        audio_config = texttospeech.AudioConfig(
-            audio_encoding=texttospeech.AudioEncoding.LINEAR16
-        )
-
-        # Perform the TTS request
-        response = client.synthesize_speech(
-            input=input_text, voice=voice, audio_config=audio_config
-        )
-
-        # Save to a temporary MP3 file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as out:
-            out.write(response.audio_content)
-            out.flush()
-            return send_file(out.name, mimetype='audio/wav')
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
+#Generating text-to-speech including the openAI API variations
 @app.route('/generate-tts-bis', methods=['POST'])
 def generate_tts_bis():
     try:
@@ -439,6 +360,7 @@ def generate_tts_bis():
         if not body or body.get("passwd") != HASH_PASSWD:
             return {"status": "failed", "message": "Authentication error"}, 403
 
+        #alerts is JSON (e.g. with tempHigh:True) identifying problematic variables (temp too high for instance)
         body = body.get("alerts")
         possible_alerts = {"HumLow" : "Humidity rate is quite low, drink water and do sport!",
                            "HumHigh" : "Humidity rate is too high, open a window!",
@@ -451,6 +373,7 @@ def generate_tts_bis():
                            "Warm": "It's quite warm outside, don't plan skying.",
                            "Cold": "It's cold outside, wear warm clothes."}
 
+        #Adding variations to our base alerts
         text = ""
         for tag, base_text in possible_alerts.items():
             if body.get(tag):
@@ -460,7 +383,7 @@ def generate_tts_bis():
         if not text.strip():
             return jsonify({"error": "No alert triggered"}), 200
 
-        # Set up the client
+        # Set up the google tts client
         client = texttospeech.TextToSpeechClient()
 
         input_text = texttospeech.SynthesisInput(text=text)
