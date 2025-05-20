@@ -24,8 +24,8 @@ This project implements a comprehensive indoor/outdoor weather monitoring system
 ## 🛠️ Technology Stack
 
 - **Hardware**: M5stack Core2, ENVIII sensor, Air Quality sensor, Motion sensor
-- **Cloud Platform**: Google Cloud Platform (BigQuery, Text-to-Speech)
-- **External Data**: OpenWeatherMap API
+- **Cloud Platform**: Google Cloud Platform (Cloud Run, BigQuery, Text-to-Speech)
+- **External Data**: OpenWeatherMap API, OpenAI API
 - **Frontend**: Streamlit dashboard
 - **Backend**: Python Flask middleware
 - **IoT Programming**: MicroPython for M5stack
@@ -39,7 +39,7 @@ This project implements a comprehensive indoor/outdoor weather monitoring system
 
 - `/web_app`: Backend services and M5stack code
   - `main.py`: Core application logic and API endpoints
-  - `m5stack_code.py`: Code deployed to the M5stack device
+  - `M5Code.py`: Code deployed to the M5stack device
   - `Dockerfile`: Container configuration for backend services
   - `requirements.txt`: Python dependencies for the backend
   - `test.py`: Testing utilities
@@ -50,9 +50,10 @@ This project implements a comprehensive indoor/outdoor weather monitoring system
 
 1. Google Cloud Platform account with BigQuery and Text-to-Speech API enabled
 2. OpenWeatherMap API key
-3. Python 3.7+
-4. M5stack Core2 with ENVIII, Air Quality and Motion sensors
-5. Docker (optional, for containerized deployment)
+3. OpenAI API key 
+4. Python 3.7+
+5. M5stack Core2 with ENVIII, Air Quality and Motion sensors
+6. Docker (optional, for containerized deployment)
 
 ### Cloud Service Setup
 
@@ -82,23 +83,16 @@ This project implements a comprehensive indoor/outdoor weather monitoring system
 
 4. Configure environment variables (create a `.env` file with the following):
    ```
-   # Google Cloud credentials
    GOOGLE_APPLICATION_CREDENTIALS=path/to/your/credentials.json
-   BIGQUERY_DATASET=your_dataset_name
-   BIGQUERY_TABLE=your_table_name
-   
-   # OpenWeatherMap API
    OPENWEATHERMAP_API_KEY=your_api_key
-   DEFAULT_LOCATION=your_default_city
+   OPENAI_API_KEY=your_api_key
    
-   # Other configurations
-   TTS_ENABLED=true
    ```
 
 ### M5stack Setup
 
 1. Flash the M5stack device with the MicroPython firmware
-2. Upload the `m5stack_code.py` to your device
+2. Upload the `M5Code.py` to your device
 3. Configure WiFi credentials in the device interface
 
 ## 🖥️ Running the Application
@@ -152,24 +146,6 @@ The on-device interface displays:
 
 ## 📈 Project Architecture
 
-```
-┌─────────────┐      ┌───────────────┐     ┌───────────────┐
-│  M5stack    │      │  Cloud        │     │  User         │
-│  Device     │      │  Services     │     │  Interfaces   │
-├─────────────┤      ├───────────────┤     ├───────────────┤
-│ Temperature │      │               │     │               │
-│ Humidity    │◄────►│  BigQuery     │◄───►│  Streamlit    │
-│ Air Quality │      │  Storage      │     │  Dashboard    │
-│ Motion      │      │               │     │               │
-└─────────────┘      └───────────────┘     └───────────────┘
-       ▲                     ▲                     ▲
-       │                     │                     │
-       └─────────────────────▼─────────────────────┘
-                  ┌───────────────────┐
-                  │  External APIs    │
-                  ├───────────────────┤
-                  │  OpenWeatherMap   │
-                  │  Google TTS       │
-                  └───────────────────┘
-```
+<img width="1205" alt="Capture d’écran 2025-05-20 à 5 34 33 PM" src="https://github.com/user-attachments/assets/87fdea54-b937-4b0a-b645-d2d5272cdb7f" />
+
 
