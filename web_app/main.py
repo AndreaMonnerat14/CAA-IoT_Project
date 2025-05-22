@@ -89,6 +89,7 @@ def generate_llm_alert(tag, base_text):
 #%%
 @app.route('/send-to-bigquery', methods=['GET', 'POST'])
 def send_to_bigquery():
+    global lat, lon
     if request.method == 'GET':
         return {"status": "ready", "message": "Send POST data to store in BigQuery"}
 
@@ -298,6 +299,7 @@ def get_weather_forecast():
 #special endpoint for M5 UI
 @app.route('/get-weather-forecast-3', methods=['POST'])
 def get_weather_forecast_3():
+    global lat, lon
     try:
         body = request.get_json(force=True)
         if not body or body.get("passwd") != HASH_PASSWD:
