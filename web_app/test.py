@@ -4,20 +4,20 @@ from flask import request
 
 url = 'https://caa-iot-project-1008838592938.europe-west6.run.app'
 
-PASSWD = "fce21e30cc9a328d8531fefc6f6dff8fb80fedced25b37fa6259ceec595e4057"
+PASSWD = "bcc32c35723bc06a3adc11d4e6a98f4ba101b2ffc44dce93de0fe3f2a95d0722"
 
 data = {
-    "passwd": "fce21e30cc9a328d8531fefc6f6dff8fb80fedced25b37fa6259ceec595e4057",
+    "passwd": PASSWD,
     "values": {
         "indoor_temp": random.randint(10, 20), # random values for the indoor temperature and humidity
         "indoor_humidity": random.randint(30, 80),
         "city": random.choices(["Villars-le-Comte", "Lausanne", "Rolle"])
     }
 }
-"""
+
 response = requests.post(f"{url}/send-to-bigquery", json=data)
 print(response.status_code, response.text)
-
+"""
 response = requests.post(str(url + '/get_outdoor_weather'), json = data)
 print(response.status_code, response.text)
 
@@ -86,6 +86,7 @@ response = requests.post(str(url + '/get-weather-forecast-3'), json = data)
 print(response.status_code, response.text)
 
 
+data = {"passwd": PASSWD}
 
 response = requests.post(str(url + '/get-all-data'), json = data)
 print("Status Code:", response.status_code)

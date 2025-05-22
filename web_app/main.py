@@ -23,6 +23,10 @@ OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY")
 HASH_PASSWD = os.environ.get("HASH_PASSWD")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
+#default lat and lon
+lat = 46.4
+lon = 6.3
+
 # Initialize BigQuery client
 try:
     client = bigquery.Client(project="assignment1-452312", location="europe-west6")
@@ -110,7 +114,12 @@ def send_to_bigquery():
             data["timestamp"] = datetime_info["timestamp"] #using correct timestamp
 
             #Add location from lat and lon
-            data["city"] = get_city_nominatim(data["lat"], data["lon"])
+            try:
+                data["lat"] = data.get("lat", lat)
+                data["lon"] = data.get("lon", lon)
+                data["city"] = get_city_nominatim(data["lat"], data["lon"])
+            except Exception as e:
+                print(f"Unable to load city: {e}")
 
             # Enrich with outdoor weather from OpenWeatherMap
             try:
@@ -295,8 +304,8 @@ def get_weather_forecast_3():
             return jsonify({"status": "failed", "message": "Authentication error"}), 403
 
         city = body.get("city", None)
-        lat = body.get("lat", None)
-        lon = body.get("lon", None)
+        lat = float(body.get("lat", lat))
+        lon = float(body.get("lon", lon))
 
         if lat is not None and lon is not None:
             url = "https://api.openweathermap.org/data/2.5/forecast?lat={}&lon={}&units=metric&appid={}&lang=en".format(
