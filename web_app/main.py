@@ -255,7 +255,9 @@ def get_all_data():
         return {"status": "failed", "message": "Authentication error"}, 403
     try:
         query = "SELECT * FROM `assignment1-452312.Lab4_IoT_datasets.weather-records` ORDER BY timestamp DESC"
-        df = client.query(query).to_dataframe()
+        query_job = client.query(query)
+        query_job.result()
+        df = query_job.to_dataframe()
         df = df.astype(str)
         return {"status": "success", "data": df.to_dict(orient="records")}
     except Exception as e:
