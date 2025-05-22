@@ -19,7 +19,7 @@ load_dotenv()
 
 # You only need to uncomment the line below if you want to run your flask app locally.
 OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY")
-GOOGLE_APPLICATION_CREDENTIALS = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+#GOOGLE_APPLICATION_CREDENTIALS = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
 HASH_PASSWD = os.environ.get("HASH_PASSWD")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
