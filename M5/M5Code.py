@@ -114,9 +114,9 @@ ntp = ntptime.client(host='cn.pool.ntp.org', timezone=2)
 # location
 ip_info_res = urequests.get("http://ip-api.com/json")
 ip_info = ip_info_res.json()
-lat = ip_info.get("lat")
-lon = ip_info.get("lon")
-city = ip_info.get("city")
+lat = ip_info.get("lat", 46.4)
+lon = ip_info.get("lon", 6.3)
+city = ip_info.get("city", "Lausanne")
 
 ip_info_res.close()
 del ip_info, ip_info_res

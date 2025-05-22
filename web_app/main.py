@@ -120,7 +120,9 @@ def send_to_bigquery():
                 data["lon"] = data.get("lon", lon)
                 data["city"] = get_city_nominatim(data["lat"], data["lon"])
             except Exception as e:
-                print(f"Unable to load city: {e}")
+                data["lat"] = data.get("lat", lat)
+                data["lon"] = data.get("lon", lon)
+                data["city"] = "Lausanne"
 
             # Enrich with outdoor weather from OpenWeatherMap
             try:
