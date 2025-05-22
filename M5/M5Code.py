@@ -12,6 +12,8 @@ import ntptime
 import lodepng  # handling png to binary (for lvgl)
 import gc  # handling memory
 
+wifiCfg.autoConnect(lcdShow=False)
+wifiCfg.wlan_sta.active(True)
 # wifiCfg.doConnect("iot-unil", "4u6uch4hpY9pJ2f9")
 
 # LVGL init
@@ -21,13 +23,13 @@ scr.set_style_local_bg_color(scr.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0x0d3
 
 # Known WiFi Networks
 networks = [
-    ('YourNetwork', 'YourPassword'),
+    ('YourNetwork', 'PW'),
     ('OtherNetwork', 'password123')
 ]
 
 
 # Initial Connection with Local Label
-def connect_to_known_networks():
+def connect_to_known_networks(network_list):
     loading_label = lv.label(scr)
     loading_label.align(scr, lv.ALIGN.CENTER, -120, 0)
     loading_label.set_style_local_text_color(loading_label.PART.MAIN, lv.STATE.DEFAULT, lv.color_hex(0xf4f6f7))
@@ -37,16 +39,29 @@ def connect_to_known_networks():
     lv.scr_load(scr)
 
     while True:
-        available = wifiCfg.wlan_sta.scan()
+        for attempt in range(3):  # Retry scan
+            available = wifiCfg.wlan_sta.scan()
+            if available:
+                break
+            loading_label.set_text("Scanning WiFi...")
+            lv.task_handler()
+            time.sleep(2)
+
+        if not available:
+            loading_label.set_text("No networks found.")
+            lv.task_handler()
+            time.sleep(5)
+            continue
+
         available_names = [net[0].decode('utf-8') for net in available]
 
-        for ssid, password in networks:
+        for ssid, password in network_list:
             if ssid in available_names:
                 loading_label.set_text("Trying " + ssid + "...")
                 lv.task_handler()
                 wifiCfg.doConnect(ssid, password)
 
-                for _ in range(10):
+                for _ in range(15):
                     if wifiCfg.wlan_sta.isconnected():
                         ip = wifiCfg.wlan_sta.ifconfig()[0]
                         loading_label.set_text("Connected: " + ip)
@@ -62,7 +77,7 @@ def connect_to_known_networks():
         time.sleep(5)
 
 
-connect_to_known_networks()
+connect_to_known_networks(networks)
 
 # Init LVGL screen and loading label
 
@@ -84,11 +99,16 @@ error_textarea.set_hidden(True)  # hidden by default
 
 # displaying errors
 def display_error(msg):
+    global img
     if msg:
+        if img:
+            img.set_hidden(True)
         error_textarea.set_text(msg)
         error_textarea.set_hidden(False)
         wait(2)
         error_textarea.set_hidden(True)
+        if img:
+            img.set_hidden(False)
     else:
         error_textarea.set_text("")
         error_textarea.set_hidden(True)
@@ -168,7 +188,7 @@ def get_latest_values():
 # Current weather
 def get_outdoor_weather():
     global passwd, flask_url
-    data = {"passwd": passwd}
+    data = {"passwd": passwd, "lat": lat, "lon": lon}
     response = urequests.post(str(flask_url + '/get_outdoor_weather'), json=data)
     if response.status_code == 200:
         result = response.json()
@@ -282,25 +302,56 @@ out_weather_label.set_text("")
 
 # Reconnect to Wifi If Lost
 def reconnect_if_lost():
-    if not wifiCfg.wlan_sta.isconnected():
-        display_error("WiFi lost. Reconnecting...")
+    global networks
 
-        for attempt in range(3):  # Try 3 times
+    if wifiCfg.wlan_sta.isconnected():
+        return True
+
+    wifiCfg.wlan_sta.active(True)
+    time.sleep(1)
+
+    display_error("WiFi lost. Reconnecting...")
+    lv.scr_load(scr)
+
+    while True:
+        # Retry scan 3 times
+        for attempt in range(3):
             available = wifiCfg.wlan_sta.scan()
-            available_names = [net[0].decode('utf-8') for net in available]
+            if available:
+                break
+            display_error("Scanning WiFi...")
+            lv.task_handler()
+            wait(2)
 
-            for ssid, password in networks:
-                if ssid in available_names:
-                    wifiCfg.doConnect(ssid, password)
-                    for _ in range(10):
-                        if wifiCfg.wlan_sta.isconnected():
-                            return True
-                        time.sleep(1)
-            time.sleep(5)
+        if not available:
+            display_error("No networks found.")
+            lv.task_handler()
+            wait(5)
+            continue
 
-        display_error("WiFi reconnection failed.")
-        return False
-    return True
+        available_names = [net[0].decode('utf-8') for net in available]
+
+        for ssid, password in networks:
+            if ssid in available_names:
+                display_error("Trying " + ssid + "...")
+                lv.task_handler()
+                wifiCfg.doConnect(ssid, password)
+
+                for _ in range(15):
+                    if wifiCfg.wlan_sta.isconnected():
+                        ip = wifiCfg.wlan_sta.ifconfig()[0]
+                        display_error("Reconnected: " + ip)
+                        lv.task_handler()
+                        wait(2)
+                        gc.collect()
+                        return True
+                    time.sleep(1)
+
+        display_error("Retrying in 5s...")
+        lv.task_handler()
+        wait(5)
+
+    return False
 
 
 # getting 3 days forecasts
@@ -804,6 +855,7 @@ def send_data():
         }
     }
     res = urequests.post(str(flask_url + "/send-to-bigquery"), json=data)
+    result = res.json()
     if res.status_code != 200:
         display_error("Couldn't send data to the cloud")
     res.close()
@@ -832,62 +884,118 @@ gc.collect()
 
 # Main loop
 while True:
-    # checks connection every minute
-    if t % 60 == 0:
+    # Check connection every 30 seconds (plus fréquent)
+    if t % 30 == 0:
         reconnect_if_lost()
-    # init labels, btns, image at start
-    if t == 0:
-        loading_label.delete()
-        btn.set_hidden(False)
-        btn_forecast.set_hidden(False)
-        lv.scr_load(scr)
-        out_temp_label.set_text(str(outTemp) + "°C")
-        out_hum_label.set_text(str(outHum) + "%")
-        if city:
-            loc_label.set_text(str(city))
+
+    # Init labels, btns, image at start
+    try:
+        if t == 0:
+            loading_label.delete()
+            btn.set_hidden(False)
+            btn_forecast.set_hidden(False)
+            lv.scr_load(scr)
+            out_temp_label.set_text(str(outTemp) + "°C")
+            out_hum_label.set_text(str(outHum) + "%")
+            if city:
+                loc_label.set_text(str(city))
+            else:
+                loc_label.set_text("Lat: " + str(lat) + " - Lon: " + str(lon))
+            label_in.set_hidden(False)
+            label_out.set_hidden(False)
+            display_weather_image(outWeather)
+    except Exception as e:
+        display_error("Init error: " + str(e))
+
+    # Updating labels/colors (local operations, no network)
+    try:
+        if reconnect_if_lost():
+            update_labels()
+            update_variable_label_colors(temp, hum, tvoc, eco2, temp_label, hum_label, tvoc_label, eco2_label)
         else:
-            loc_label.set_text("Lat: " + lat + " - Lon: " + lon)
-        label_in.set_hidden(False)
-        label_out.set_hidden(False)
-        display_weather_image(outWeather)
+            display_error("No WiFi - skipping update")
+    except Exception as e:
+        display_error("Update error: " + str(e))
 
-    # updating labels/colors
-    update_labels()
-    update_variable_label_colors(temp, hum, tvoc, eco2, temp_label, hum_label, tvoc_label, eco2_label)
-
-    # send data every 5 min
-    if t % 300 == 0:
-        # send data
-        send_data()
-        # update flags
-        update_flags()
-        gc.collect()
-
-    # updates forecasts every hour
-    if t % 3600 == 0 & t != 0:
-        forecast = get_forecast()
-
-    # displays forecast icons when in forecast screen
-    if state == "forecast":
-        display_forecast_icon_for_day(forecast_t)
-
-    # send alerts if there is movement and if it's been at least an hour last alert was given
-    if tts_timer > 3600 and pir.state:
-        tts_timer = 0
-        if get_tts(tts_alerts):
-            try:
-                speaker.playWAV("tts.wav", volume=8)
-                wait(10)
+    # Send data every 5 min (with network check)
+    try:
+        if t % 300 == 0:
+            if reconnect_if_lost():  # Vérifier AVANT l'opération
+                send_data()
+                update_flags()
                 gc.collect()
-            except Exception as e:
-                display_error("Playback error: " + str(e))
+            else:
+                display_error("No WiFi - skipping data send")
+    except Exception as e:
+        error_str = str(e).lower()
+        if "network" in error_str or "connection" in error_str or "timeout" in error_str:
+            display_error("Network error: " + str(e))
+            print("Network error during send_data: " + str(e))
+            # Retry once after 5 seconds
+            time.sleep(5)
+            if reconnect_if_lost():
+                try:
+                    send_data()
+                    update_flags()
+                    gc.collect()
+                except:
+                    display_error("Retry failed - will try next cycle")
         else:
-            display_error("Couldn't load alerts")
+            display_error("Send error: " + str(e))
 
-    # increments
+    # Updates forecasts every hour (with network check)
+    try:
+        if t % 3600 == 0 and t != 0:
+            if reconnect_if_lost():  # Vérifier AVANT l'opération
+                forecast = get_forecast()
+            else:
+                display_error("No WiFi - skipping forecast update")
+    except Exception as e:
+        error_str = str(e).lower()
+        if "network" in error_str or "connection" in error_str or "timeout" in error_str:
+            display_error("Network error: " + str(e))
+        else:
+            display_error("Forecast error: " + str(e))
+
+    # Displays forecast icons when in forecast screen (no network needed)
+    try:
+        if state == "forecast":
+            display_forecast_icon_for_day(forecast_t)
+    except Exception as e:
+        display_error("Icon display error: " + str(e))
+
+    # Send alerts if there is movement and if it's been at least an hour (with network check)
+    try:
+        if tts_timer > 3600 and pir.state:
+            tts_timer = 0
+            if reconnect_if_lost():  # Vérifier AVANT l'opération TTS
+                if get_tts(tts_alerts):
+                    try:
+                        speaker.playWAV("tts.wav", volume=8)
+                        wait(10)
+                        gc.collect()
+                    except Exception as e:
+                        display_error("Playback error: " + str(e))
+                else:
+                    display_error("TTS generation failed")
+            else:
+                display_error("No WiFi - skipping TTS alert")
+    except Exception as e:
+        error_str = str(e).lower()
+        if "network" in error_str or "connection" in error_str or "timeout" in error_str:
+            display_error("TTS network error: " + str(e))
+        else:
+            display_error("TTS error: " + str(e))
+
+    # Increments (always execute)
     t += 1
     tts_timer += 1
     forecast_t += 1
 
-    # waiting time
+    # Debug info every 10 minutes
+    if t % 600 == 0:
+        print("Status - t: " + str(t) + ", WiFi: " + str(wifiCfg.wlan_sta.isconnected()) + ", Memory: " + str(
+            gc.mem_free()))
+
+    # Waiting time
     wait_ms(600)

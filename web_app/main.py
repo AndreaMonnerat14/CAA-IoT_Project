@@ -123,6 +123,7 @@ def send_to_bigquery():
                 data["lat"] = data.get("lat", lat)
                 data["lon"] = data.get("lon", lon)
                 data["city"] = "Lausanne"
+                print("Error: " + str(e))
 
             # Enrich with outdoor weather from OpenWeatherMap
             try:
