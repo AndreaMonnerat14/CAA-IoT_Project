@@ -367,7 +367,51 @@ def get_weather_forecast_3():
     except Exception as e:
         return jsonify({"status": "failed", "message": str(e)}), 500
 
-#Generating text-to-speech including the openAI API variations
+#For the demo
+@app.route('/generate-tts', methods=['POST'])
+def generate_tts():
+    try:
+        body = request.get_json(force=True)
+
+        if not body or body.get("passwd") != HASH_PASSWD:
+            return {"status": "failed", "message": "Authentication error"}, 403
+
+        text = body.get("text")
+
+        if not text:
+            return jsonify({"error": "Missing 'text' in request"}), 400
+
+        # Set up the client
+        client = texttospeech.TextToSpeechClient()
+
+        input_text = texttospeech.SynthesisInput(text=text)
+        voice = texttospeech.VoiceSelectionParams(
+            language_code="en-US",
+            name="en-US-Wavenet-F",
+            ssml_gender=texttospeech.SsmlVoiceGender.FEMALE
+        )
+        audio_config = texttospeech.AudioConfig(
+            audio_encoding=texttospeech.AudioEncoding.LINEAR16,
+            sample_rate_hertz=8000,
+            speaking_rate=0.85,
+            effects_profile_id=["telephony-class-application"]  # Optimized for 8kHz
+        )
+
+        # Perform the TTS request
+        response = client.synthesize_speech(
+            input=input_text, voice=voice, audio_config=audio_config
+        )
+
+        # Save to a temporary WAV file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as out:
+            out.write(response.audio_content)
+            out.flush()
+            return send_file(out.name, mimetype='audio/wav')
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/generate-tts-bis', methods=['POST'])
 def generate_tts_bis():
     try:
@@ -420,7 +464,7 @@ def generate_tts_bis():
             input=input_text, voice=voice, audio_config=audio_config
         )
 
-        # Save to a temporary MP3 file
+        # Save to a temporary WAV file
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as out:
             out.write(response.audio_content)
             out.flush()
@@ -428,6 +472,8 @@ def generate_tts_bis():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)
